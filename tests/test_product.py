@@ -352,6 +352,16 @@ class InstallAndHistoricalUpgradeTests(WorkspaceCase):
         self.assertEqual((self.root/'.gitignore').read_bytes(),wrong_encoding)
 
 
+    def test_package_member_order_and_text_bytes_are_portable(self):
+        manifest=installer.SOURCE/'manifest.json'
+        self.assertNotIn(b'\r',manifest.read_bytes())
+        self.assertNotIn(b'\r',(REPO/'dist/SHA256SUMS').read_bytes())
+        version=json.loads(manifest.read_text())['version']
+        with zipfile.ZipFile(REPO/('dist/chao-knowledge-v'+version+'.zip')) as z:
+            self.assertEqual(z.namelist()[:2],['chao-knowledge/LICENSE','chao-knowledge/SKILL.md'])
+            self.assertTrue(all(info.create_system==3 for info in z.infolist()))
+            self.assertEqual(z.read('chao-knowledge/manifest.json'),manifest.read_bytes())
+
     def test_source_manifest_symlink_is_rejected(self):
         source=self.base/'package'; import shutil;shutil.copytree(installer.SOURCE,source)
         (source/'manifest.json').unlink(); self.symlink(installer.SOURCE/'manifest.json',source/'manifest.json')
