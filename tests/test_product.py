@@ -161,16 +161,16 @@ class SafetyAndLifecycleTests(WorkspaceCase):
     def setUp(self): super().setUp(); self.init()
 
     def test_hardlinked_input_rejected(self):
-        p=self.base/'outside.txt'; p.write_text('外部文件')
+        p=self.base/'outside.txt'; p.write_text('外部文件',encoding='utf-8')
         try: os.link(p,self.root/'00-收件箱/link.txt')
         except OSError: self.skipTest('hardlinks unavailable')
         with self.assertRaises(kb.KBError): self.call('ingest','--title','错误','--file','00-收件箱/link.txt')
 
     def test_health_does_not_follow_unknown_symlinks(self):
-        outside=self.base/'private'; outside.mkdir(); (outside/'secret.md').write_text('不能读取')
+        outside=self.base/'private'; outside.mkdir(); (outside/'secret.md').write_text('不能读取',encoding='utf-8')
         self.symlink(outside,self.root/'04-项目/linked')
         self.assertIn('unsafe_path',{f['kind'] for f in self.call('health')['findings']})
-        self.assertEqual((outside/'secret.md').read_text(),'不能读取')
+        self.assertEqual((outside/'secret.md').read_text(encoding='utf-8'),'不能读取')
 
     def test_health_reports_drift_reference_orphan_sensitive_and_backlog(self):
         material=self.material(); self.put('00-收件箱/draft.md','知识库')
@@ -356,7 +356,7 @@ class InstallAndHistoricalUpgradeTests(WorkspaceCase):
         manifest=installer.SOURCE/'manifest.json'
         self.assertNotIn(b'\r',manifest.read_bytes())
         self.assertNotIn(b'\r',(REPO/'dist/SHA256SUMS').read_bytes())
-        version=json.loads(manifest.read_text())['version']
+        version=json.loads(manifest.read_text(encoding='utf-8'))['version']
         with zipfile.ZipFile(REPO/('dist/chao-knowledge-v'+version+'.zip')) as z:
             self.assertEqual(z.namelist()[:2],['chao-knowledge/LICENSE','chao-knowledge/SKILL.md'])
             self.assertTrue(all(info.create_system==3 for info in z.infolist()))
@@ -378,7 +378,7 @@ class InstallAndHistoricalUpgradeTests(WorkspaceCase):
 
     def historical_repo(self,tag):
         repo=self.base/('repo-'+tag);repo.mkdir()
-        result=subprocess.run(['git','archive','--format=zip',tag],cwd=REPO,capture_output=True)
+        result=subprocess.run(['git','-c','core.autocrlf=false','archive','--format=zip',tag],cwd=REPO,capture_output=True)
         self.assertEqual(result.returncode,0,result.stderr.decode())
         with zipfile.ZipFile(io.BytesIO(result.stdout)) as z: z.extractall(repo)
         return repo
@@ -469,7 +469,7 @@ class InstallAndHistoricalUpgradeTests(WorkspaceCase):
         state=(self.root/'.chao/state.json').read_bytes()
         with self.assertRaises(ValueError): installer.install(str(self.root),True,True)
         self.assertEqual((self.root/'.chao/state.json').read_bytes(),state)
-        manifest=json.loads((self.root/'.codebuddy/skills/chao-knowledge/manifest.json').read_text())
+        manifest=json.loads((self.root/'.codebuddy/skills/chao-knowledge/manifest.json').read_text(encoding='utf-8'))
         self.assertEqual(manifest['version'],'0.2.1')
         self.assertEqual((self.root/'01-我的档案/我是谁.md').read_text(encoding='utf-8'),'旧库手工改动')
 

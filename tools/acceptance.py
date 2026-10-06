@@ -29,7 +29,7 @@ def journey(base,name,legacy=False,existing=False):
         preserved['用户已有笔记.md']=(root/'用户已有笔记.md').read_bytes()
     if legacy:
         oldrepo=base/'historical-v0.1.1';oldrepo.mkdir()
-        archive=subprocess.run(['git','archive','--format=zip','v0.1.1'],cwd=REPO,capture_output=True,check=True).stdout
+        archive=subprocess.run(['git','-c','core.autocrlf=false','archive','--format=zip','v0.1.1'],cwd=REPO,capture_output=True,check=True).stdout
         with zipfile.ZipFile(io.BytesIO(archive)) as z:z.extractall(oldrepo)
         p=subprocess.run([sys.executable,str(oldrepo/'tools/install.py'),'--workspace',str(root),'--init'],capture_output=True,text=True,encoding='utf-8')
         if p.returncode: raise RuntimeError(p.stderr)
