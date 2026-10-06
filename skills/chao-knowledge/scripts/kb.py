@@ -21,7 +21,7 @@ import sys
 import tempfile
 import uuid
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 SCHEMA = 1
 STORE = ".chao"
 DIRS = ("00-待整理", "01-资料", "02-作品", "03-复盘")
@@ -202,7 +202,7 @@ def initialize(root):
     atomic(inside(root, "AGENTS.md"), previous.get("AGENTS.md", "").rstrip() + "\n\n" + BOOT)
     ignore = "\n# Chao Knowledge: private runtime data; do not publish\n/.chao/\n/00-待整理/\n/01-资料/\n/02-作品/\n/03-复盘/\n/开始使用.md\n"
     atomic(inside(root, ".gitignore"), previous.get(".gitignore", "").rstrip() + "\n" + ignore)
-    atomic(inside(root, "开始使用.md"), "# 从第一件事开始\n\n对 AI 说：带我完成第一次使用。\n\n先说你在做什么、给谁看、今天想完成什么；已有信息不必重复。然后放入一份真实资料，产出一份初稿并核对。\n\n常用说法：\n- 把这份资料放进知识库，告诉我读到了什么。\n- 用我的档案和这份资料做一份草稿，列出来源与待核对项。\n- 这条要求以后只用于小白口播，请先给我确认再保存。\n- 列出长期要求；撤销我指定的一条。\n- 检查有没有缺失资料、待转写内容或过期要求。\n\n资料保存在本地，但交给云端 AI 读取时可能发送给模型服务商；这不是离线隐私承诺。不要放密钥或未经许可的客户资料。\n")
+    atomic(inside(root, "开始使用.md"), "# 从第一件事开始\n\n对 AI 说：带我完成第一次使用。\n\n先说你在做什么、给谁看、今天想完成什么；已有信息不必重复。然后放入一份真实资料，产出一份初稿并核对。\n\n常用说法：\n- 把这份资料放进知识库，告诉我读到了什么。\n- 用我的档案和这份资料做一份草稿，列出来源与待核对项。\n- 这条要求以后只用于入门口播，请先给我确认再保存。\n- 列出长期要求；撤销我指定的一条。\n- 检查有没有缺失资料、待转写内容或过期要求。\n\n资料保存在本地，但交给云端 AI 读取时可能发送给模型服务商；这不是离线隐私承诺。不要放密钥或未经许可的客户资料。\n")
     save_state(root, state)
     return {"status": "initialized", "workspace": str(root), "next": "带用户完成一个真实任务，不以目录创建作为完成标准", "preserved_configs": list(previous)}
 

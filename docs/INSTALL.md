@@ -3,7 +3,7 @@
 ## 推荐：工作区级安装
 
 1. 在 WorkBuddy 桌面端选定一个专门的本地工作区，不选择整个用户主目录。
-2. 下载本项目 v0.1.0 源码并解压到临时位置，先读 README、SKILL.md 和脚本。
+2. 下载本项目 v0.1.1 源码并解压到临时位置，先读 README、SKILL.md 和脚本。
 3. 检查 Python 3.9+。从源码目录运行 `python3 tools/install.py --workspace "实际知识库路径" --init`；Windows 检测 `py -3`。
 4. 回到同一工作区新建对话，明确调用 chao-knowledge，完成一份真实草稿。
 
@@ -11,7 +11,7 @@
 
 ## 可选：导入 ZIP
 
-技能面板支持导入本地包；使用 `dist/chao-knowledge-v0.1.0.zip`，不是整个源码压缩包。包内为一个 chao-knowledge 目录，含 SKILL.md、scripts、references、assets、LICENSE 和 manifest。
+技能面板支持导入本地包；使用 `dist/chao-knowledge-v0.1.1.zip`，不是整个源码压缩包。包内为一个 chao-knowledge 目录，含 SKILL.md、scripts、references、assets、LICENSE 和 manifest。
 
 客户端对包格式和界面的处理以实际版本为准，本项目尚未用 WorkBuddy GUI 验证。识别失败可解压，将完整 chao-knowledge 目录放入工作区 `.codebuddy/skills/`，避免同名目录嵌套。目录方式也需新建任务测试技能是否加载。
 

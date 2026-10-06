@@ -2,14 +2,14 @@
 
 所有命令在本地执行，输出 JSON。退出码 0 成功、2 失败；失败时不得声称完成。
 要求 Python 3.9+。macOS 常用 `python3`；Windows 检测 `py -3` 或 `python`。
-以下 `SCRIPT` 和 `ROOT` 都必须替换为实际绝对路径。普通用户用自然语言，Agent 负责选择命令，不要求小白自己填 ID。
+以下 `SCRIPT` 和 `ROOT` 都必须替换为实际绝对路径。普通用户用自然语言，Agent 负责选择命令，无需用户自己填写 ID。
 
 ## 初始化与个人档案
 
 ```text
 PYTHON SCRIPT --root ROOT init
 PYTHON SCRIPT --root ROOT profile --field 身份 --value "做办公效率内容" --quote "我是做办公效率内容的"
-PYTHON SCRIPT --root ROOT profile --field 受众 --value "AI小白" --quote "我的内容主要给AI小白看"
+PYTHON SCRIPT --root ROOT profile --field 受众 --value "AI初学者" --quote "我的内容主要给AI初学者看"
 ```
 
 其他档案字段：称呼、当前目标、表达风格、真实经历、不能替我说的话。`profile` 会更新一个字段，其余字段保留。只接收当前用户明确自述；保存前确认推断未被写成事实。
@@ -31,7 +31,7 @@ PYTHON SCRIPT --root ROOT extract --id m-真实ID --file "00-待整理/正文.tx
 
 ```text
 PYTHON SCRIPT --root ROOT search --query "知识库 口播" --limit 5
-PYTHON SCRIPT --root ROOT context --task "写一条给AI小白的知识库口播" --scope task=口播 --scope audience=AI小白 --scope platform=抖音
+PYTHON SCRIPT --root ROOT context --task "写一条给AI初学者的知识库口播" --scope task=口播 --scope audience=AI初学者 --scope platform=抖音
 ```
 
 检索返回原文件路径、行号和摘录，不代表读过全部内容。每次最多遍历前 1000 条材料、读取正文总预算 20 MiB，每个匹配摘录最多 1200 字符；命令会报告跳过或预算限制。规则与个人档案也有显式预算与遗漏计数。容量大时先按项目拆分，不夸大成大规模语义检索。
@@ -39,8 +39,8 @@ PYTHON SCRIPT --root ROOT context --task "写一条给AI小白的知识库口播
 ## 规则：先提议，再确认
 
 ```text
-PYTHON SCRIPT --root ROOT remember --key 表达难度 --text "少用术语，必要术语配一个生活例子" --scope task=口播 --scope audience=AI小白
-PYTHON SCRIPT --root ROOT confirm --id r-真实ID --quote "确认，只用于给AI小白看的口播"
+PYTHON SCRIPT --root ROOT remember --key 表达难度 --text "少用术语，必要术语配一个生活例子" --scope task=口播 --scope audience=AI初学者
+PYTHON SCRIPT --root ROOT confirm --id r-真实ID --quote "确认，只用于给AI初学者看的口播"
 PYTHON SCRIPT --root ROOT rules
 PYTHON SCRIPT --root ROOT revoke --id r-真实ID --quote "撤销这条要求"
 PYTHON SCRIPT --root ROOT forget --id r-真实ID --quote "从规则库删除这条记录"

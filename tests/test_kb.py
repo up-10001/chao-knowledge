@@ -325,10 +325,10 @@ class RuleTests(WorkspaceCase):
         with self.assertRaises(kb.KBError): self.call("confirm", "--id", row["id"], "--quote", "")
 
     def test_scoped_rule_only_matches_its_context(self):
-        row = self.proposal("--scope", "task=口播", "--scope", "audience=AI小白"); self.activate(row)
+        row = self.proposal("--scope", "task=口播", "--scope", "audience=AI初学者"); self.activate(row)
         self.assertFalse(self.call("context", "--task", "技术方案", "--scope", "task=报告")["rules"])
         self.assertFalse(self.call("context", "--task", "普通任务")["rules"])
-        self.assertTrue(self.call("context", "--task", "写稿", "--scope", "task=口播", "--scope", "audience=AI小白")["rules"])
+        self.assertTrue(self.call("context", "--task", "写稿", "--scope", "task=口播", "--scope", "audience=AI初学者")["rules"])
 
     def test_specific_scope_precedes_global(self):
         broad = self.proposal(); self.activate(broad)
@@ -478,7 +478,7 @@ class PackageTests(WorkspaceCase):
     def test_package_hashes_and_zip_layout(self):
         manifest = json.loads((installer.SOURCE / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["files"], installer.inventory(installer.SOURCE))
-        path = REPO / "dist/chao-knowledge-v0.1.0.zip"
+        path = REPO / ("dist/chao-knowledge-v" + manifest["version"] + ".zip")
         with zipfile.ZipFile(path) as z:
             self.assertIn("chao-knowledge/SKILL.md", z.namelist())
             self.assertFalse(any(".." in Path(n).parts or "__pycache__" in n for n in z.namelist()))
@@ -514,9 +514,9 @@ class PackageTests(WorkspaceCase):
         self.assertTrue(json.loads(result.stdout)["ok"])
 
     def test_public_samples_are_explicitly_fictional(self):
-        sample = (installer.SOURCE / "assets/demo-source.md").read_text(encoding="utf-8")
+        sample = (installer.SOURCE / "assets/sample-source.md").read_text(encoding="utf-8")
         self.assertIn("虚构", sample)
-        profile = json.loads((installer.SOURCE / "assets/demo-profile.json").read_text(encoding="utf-8"))
+        profile = json.loads((installer.SOURCE / "assets/sample-profile.json").read_text(encoding="utf-8"))
         self.assertIn("虚构", profile["notice"])
 
 
