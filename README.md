@@ -4,7 +4,7 @@
 
 Chao Knowledge 是一个面向 WorkBuddy 本地工作区的个人知识库 Skill。它把个人档案、资料、内容流程、长期要求和复盘放在同一个可见工作区里；底层状态由脚本维护，上层 Markdown 文件可以直接打开查看。
 
-**v0.2.0 · MIT 开源 · Python 3.9+ · 无第三方 Python 依赖**
+**v0.2.1 · MIT 开源 · Python 3.9+ · 无第三方 Python 依赖**
 
 [快速安装](#快速安装) · [使用指南](docs/USAGE.md) · [知识库结构](docs/ARCHITECTURE.md) · [下载安装包](https://github.com/up-10001/chao-knowledge/releases/latest)
 
@@ -100,7 +100,7 @@ Chao Knowledge 同时维护两层：
 先在电脑上新建一个独立文件夹，例如 **“我的 AI 知识库”**，在 WorkBuddy 桌面端选中它作为工作区，然后发送：
 
 ```text
-请从这个公开仓库安装 chao-knowledge 的 v0.2.0：
+请从这个公开仓库安装 chao-knowledge 的 v0.2.1：
 https://github.com/up-10001/chao-knowledge
 
 先读取 README 和安装说明，检查 Python 3.9+ 与必要文件权限。

@@ -5,7 +5,7 @@ license: MIT
 compatibility: 面向 WorkBuddy 桌面本地工作区；完整脚本模式需要 Python 3.9+ 和文件读写权限，无第三方 Python 依赖。其他宿主未实测。链接读取、音视频转写和成品质量依赖宿主能力，不内置付费 API。
 metadata:
   author: up-10001
-  version: "0.2.0"
+  version: "0.2.1"
 ---
 
 # Chao Knowledge · 个人 AI 知识库

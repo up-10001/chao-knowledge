@@ -1,9 +1,9 @@
 {
-  "version": "0.2.0",
+  "version": "0.2.1",
   "algorithm": "sha256",
   "files": {
     "LICENSE": "5517382eec92bda5a06b19a14640714a50b8fc38bc26e1cccc8f6e826b47102c",
-    "SKILL.md": "60dfaf79e4d4e9bdb69d829ca5d68df334cda1813db3822fd6ddd656196bab7f",
+    "SKILL.md": "810990af549c8f0d7cd8c369005dc6ea9d52cf65b03c2f3a96b19ebf38dbc479",
     "assets/feedback-template.json": "79c562559a7b46cab10d156e8a9c382347218506edc10cd703361bcbee7b9854",
     "assets/sample-profile.json": "29095e433f69a509f26fd110511e577b2af9e0fd230c8fff96962f5104eacef2",
     "assets/sample-source.md": "387f27a1cb6fe2074b8608f8ea8608a71703ba1d26647c4b9c778ceca0cc52f3",
@@ -11,6 +11,6 @@
     "references/creator-workflow.md": "df7d99f62a4e53c6fa4f4aac7e76963deab1df61336d68c0b96bf590e1ab7686",
     "references/fallback.md": "7a66c39ab4ca27f553b79f7e763f0e75bd313b46c263a0255c61fff8298e7119",
     "references/quality.md": "b463c3e924e4ef5671664a762085c2080400bc87f2d1c60f1c98002416c2a8c1",
-    "scripts/kb.py": "3886d47b2438a15116837363e21083797d48221926ae71514143887ac0415b09"
+    "scripts/kb.py": "de44c9277ad4269d10c9d35afbe62f1bdce832fe86a6f6e925e92f414cd0456b"
   }
 }

@@ -537,7 +537,7 @@ class V2VisibleLayerTests(WorkspaceCase):
         self.assertEqual(out["status"], "already_initialized")
         self.assertTrue((self.root / "知识库地图.md").is_file())
         self.assertIn("/02-资料库/", (self.root / ".gitignore").read_text(encoding="utf-8"))
-        self.assertEqual(kb.load(self.root)["version"], "0.2.0")
+        self.assertEqual(kb.load(self.root)["version"], "0.2.1")
 
 
 class PackageTests(WorkspaceCase):

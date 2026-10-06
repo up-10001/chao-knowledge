@@ -1,6 +1,6 @@
 # 验证记录
 
-## v0.2.0
+## v0.2.1
 
 - macOS arm64 / Python 3.9.6：87/87 自动化测试通过。
 - 本机临时工作区 smoke test：PASS。

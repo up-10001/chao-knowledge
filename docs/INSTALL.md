@@ -1,9 +1,9 @@
-# 安装说明 · v0.2.0
+# 安装说明 · v0.2.1
 
 ## 推荐：工作区级安装
 
 1. 新建一个独立知识库文件夹，不要选择桌面、用户主目录或整个磁盘。
-2. 下载本项目 v0.2.0 源码到临时位置，先阅读 README、SKILL.md 和安装脚本。
+2. 下载本项目 v0.2.1 源码到临时位置，先阅读 README、SKILL.md 和安装脚本。
 3. 在源码目录执行：
 
 `python3 tools/install.py --workspace "/你的路径/我的 AI 知识库" --init`
@@ -14,7 +14,7 @@ Windows 可按环境使用 `py -3 tools/install.py --workspace "D:\\我的AI知�
 
 ## 可选：导入 ZIP
 
-版本发布页提供 `chao-knowledge-v0.2.0.zip`。ZIP 内只有技能包，不包含你的私人知识库。WorkBuddy 是否能从 ZIP 自动识别，取决于当前客户端版本；如失败，使用工作区级安装。
+版本发布页提供 `chao-knowledge-v0.2.1.zip`。ZIP 内只有技能包，不包含你的私人知识库。WorkBuddy 是否能从 ZIP 自动识别，取决于当前客户端版本；如失败，使用工作区级安装。
 
 ## 从 v0.1.x 更新
 

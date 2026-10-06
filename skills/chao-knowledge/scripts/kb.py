@@ -13,7 +13,7 @@ import hashlib
 import json
 import math
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import shutil
 import stat
@@ -21,7 +21,7 @@ import sys
 import tempfile
 import uuid
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 SCHEMA = 1
 STORE = ".chao"
 DIRS = (
@@ -310,6 +310,16 @@ def parse_scope(values):
     return out
 
 
+def relative_sibling(relative, filename):
+    p = PurePosixPath(str(relative))
+    if p.is_absolute() or ".." in p.parts or "\\" in str(relative):
+        raise KBError("内部相对路径无效")
+    name = check_text(filename, "文件名", 255)
+    if "/" in name or "\\" in name or name in (".", ".."): 
+        raise KBError("内部文件名无效")
+    return str(p.parent / name)
+
+
 def input_file(root, value, allow_external=False):
     p = Path(value).expanduser()
     p = no_symlinks(p if p.is_absolute() else root / p)
@@ -397,7 +407,7 @@ def extract(root, state, args):
     _, data = input_file(root, args.file, args.allow_external)
     text = decode(data)
     method = check_text(args.method, "读取/转写方法", 200)
-    rel = str(Path(record["original"]).parent / "extracted.txt")
+    rel = relative_sibling(record["original"], "extracted.txt")
     atomic(inside(root, rel), text)
     record.update(text_path=rel, text_sha256=digest(text.encode()), status="extracted_unverified",
                   extraction={"method": method, "at": now(), "complete": bool(args.complete), "verified": False})
@@ -581,7 +591,7 @@ def approve_output(root, state, args):
         if not source_path.is_file() or source_path.stat().st_size > MAX_TEXT or digest(source_path.read_bytes()) != source["text_sha256"]:
             raise KBError("草稿的来源正文已缺失或变化；重新核对并保存新版本")
     row.update(status="approved", review={"quote": quote, "at": now()})
-    atomic(inside(root, str(Path(row["path"]).parent / (row["id"] + ".sources.json"))), json.dumps(row, ensure_ascii=False, indent=2))
+    atomic(inside(root, relative_sibling(row["path"], row["id"] + ".sources.json")), json.dumps(row, ensure_ascii=False, indent=2))
     audit(state, "output_approved", row["id"])
     return {"output": row, "warning": "验收不等于已发布；本工具不会自动发布"}
 
