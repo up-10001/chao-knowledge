@@ -21,15 +21,24 @@ import sys
 import tempfile
 import uuid
 
-VERSION = "0.1.1"
+VERSION = "0.2.0"
 SCHEMA = 1
 STORE = ".chao"
-DIRS = ("00-待整理", "01-资料", "02-作品", "03-复盘")
+DIRS = (
+    "00-收件箱",
+    "01-我的档案",
+    "02-资料库", "02-资料库/对标内容", "02-资料库/用户反馈", "02-资料库/行业资料", "02-资料库/素材",
+    "03-内容中心", "03-内容中心/选题池", "03-内容中心/草稿", "03-内容中心/待确认", "03-内容中心/已完成", "03-内容中心/已发布与复盘",
+    "04-项目", "05-经验与规则",
+)
+COLLECTIONS = ("对标内容", "用户反馈", "行业资料", "素材")
+OUTPUT_STAGES = ("选题池", "草稿", "待确认", "已完成", "已发布与复盘")
+LEGACY_DIRS = ("00-待整理", "01-资料", "02-作品", "03-复盘")
 TEXT_EXT = {".txt", ".md", ".csv", ".json", ".srt", ".vtt"}
 BINARY_EXT = {".pdf", ".docx", ".xlsx", ".pptx", ".png", ".jpg", ".jpeg", ".webp", ".mp3", ".wav", ".m4a", ".mp4", ".mov"}
 MAX_BYTES = 32 * 1024 * 1024
 MAX_TEXT = 2 * 1024 * 1024
-PROFILE_FIELDS = {"称呼", "身份", "受众", "当前目标", "表达风格", "真实经历", "不能替我说的话"}
+PROFILE_FIELDS = {"称呼", "身份", "业务", "产品", "受众", "当前目标", "表达风格", "真实经历", "不能替我说的话"}
 SCOPE_FIELDS = {"task", "audience", "project", "platform"}
 SECRET_PATTERNS = [
     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
@@ -172,15 +181,101 @@ def audit(state, action, record_id):
     state["events"] = state["events"][-500:]
 
 
+def profile_value(state, field):
+    row = state.get("profile", {}).get(field)
+    return row.get("value", "") if isinstance(row, dict) else ""
+
+
+def ensure_layout(root):
+    for rel in DIRS + (STORE,):
+        p = inside(root, rel)
+        if p.exists() and not p.is_dir():
+            raise KBError("知识库结构冲突，期望文件夹：" + rel)
+        p.mkdir(parents=True, exist_ok=True)
+
+
+def ensure_private_ignores(root, existing=None):
+    p = inside(root, ".gitignore")
+    if existing is None:
+        if p.exists():
+            if not p.is_file() or p.stat().st_size > MAX_TEXT:
+                raise KBError("已有 .gitignore 不适合自动追加")
+            existing = p.read_text(encoding="utf-8")
+        else:
+            existing = ""
+    lines = ["/.chao/", "/00-收件箱/", "/01-我的档案/", "/02-资料库/", "/03-内容中心/", "/04-项目/", "/05-经验与规则/", "/开始这里.md", "/本周重点.md", "/知识库地图.md"]
+    text = existing.rstrip()
+    missing = [line for line in lines if line not in text.splitlines()]
+    if missing:
+        text += "\n\n# Chao Knowledge: private runtime data; do not publish\n" + "\n".join(missing)
+    atomic(p, text.strip() + "\n")
+
+
+def render_views(root, state):
+    # state.json is the machine source of truth; these Markdown files are readable mirrors.
+    ensure_layout(root)
+    generated = "<!-- chao-knowledge:generated; 请通过对话更新，不要手工编辑本文件 -->\n"
+    who = ["# 我是谁", ""]
+    for field in ("称呼", "身份"):
+        who.append("- **%s：** %s" % (field, profile_value(state, field) or "待补充"))
+    atomic(inside(root, "01-我的档案/我是谁.md"), generated + "\n".join(who) + "\n")
+    business = ["# 我的业务", ""]
+    for field in ("业务", "产品", "当前目标"):
+        business.append("- **%s：** %s" % (field, profile_value(state, field) or "待补充"))
+    atomic(inside(root, "01-我的档案/我的业务.md"), generated + "\n".join(business) + "\n")
+    atomic(inside(root, "01-我的档案/我的受众.md"), generated + "# 我的受众\n\n" + (profile_value(state, "受众") or "待补充") + "\n")
+    atomic(inside(root, "01-我的档案/我的经历.md"), generated + "# 我的经历\n\n" + (profile_value(state, "真实经历") or "待补充。只有用户本人明确提供的经历才应写入这里。") + "\n")
+    style = profile_value(state, "表达风格") or "待补充"
+    boundary = profile_value(state, "不能替我说的话") or "待补充"
+    atomic(inside(root, "01-我的档案/我的表达风格.md"), generated + "# 我的表达风格\n\n## 风格\n" + style + "\n\n## 不能替我说的话\n" + boundary + "\n")
+
+    active = [r for r in state.get("rules", {}).values() if r.get("status") == "active"]
+    active.sort(key=lambda r: (r.get("key", ""), r.get("id", "")))
+    lines = ["# 我的长期要求", "", "这里展示已经确认、当前生效的要求。机器事实源为 `.chao/state.json`。", ""]
+    if not active:
+        lines.append("暂无已确认规则。")
+    for r in active:
+        scope = "、".join("%s=%s" % (k, v) for k, v in sorted(r.get("scope", {}).items())) or "全局"
+        lines += ["## %s" % r.get("key", "未命名规则"), "- 内容：%s" % r.get("text", ""), "- 范围：%s" % scope, "- 有效期：%s" % (r.get("expires_on") or "长期"), "- ID：`%s`" % r.get("id", ""), ""]
+    atomic(inside(root, "05-经验与规则/我的长期要求.md"), generated + "\n".join(lines) + "\n")
+
+    labels = {"rule_proposed": "提出规则", "rule_confirmed": "确认规则", "rule_revoke": "撤销规则", "rule_forget": "移除规则"}
+    corr = ["# AI纠正记录", "", "仅显示规则相关动作，不保存用户确认原话。", ""]
+    shown = 0
+    for ev in state.get("events", [])[-30:]:
+        if ev.get("action") in labels:
+            corr.append("- %s · %s · `%s`" % (ev.get("at", ""), labels[ev["action"]], ev.get("id", "")))
+            shown += 1
+    if not shown: corr.append("暂无规则变更记录。")
+    atomic(inside(root, "05-经验与规则/AI纠正记录.md"), generated + "\n".join(corr) + "\n")
+
+    focus = profile_value(state, "当前目标") or "还没有设置本周重点。可以直接告诉 AI：我这周最重要的是……"
+    atomic(inside(root, "本周重点.md"), generated + "# 本周重点\n\n" + focus + "\n\n> 长期身份与长期规则不要写在这里；这里只放当前阶段最重要的事情。\n")
+    counts = {k: len(state.get(k, {})) for k in ("materials", "outputs", "rules", "feedback")}
+    pending = sum(1 for r in state.get("rules", {}).values() if r.get("status") == "proposed")
+    map_text = "# 知识库地图\n\n## 当前状态\n- 资料：%d 份\n- 作品：%d 份\n- 规则：%d 条（待确认 %d 条）\n- 反馈：%d 份\n\n" % (counts["materials"], counts["outputs"], counts["rules"], pending, counts["feedback"])
+    map_text += "## 去哪里找\n- `01-我的档案/`：你是谁、做什么、面向谁、真实经历和表达偏好\n- `02-资料库/对标内容/`：对标作品、逐字稿和分析材料\n- `02-资料库/用户反馈/`：评论、私信、问卷和用户需求\n- `02-资料库/行业资料/`：行业、产品、政策和学习资料\n- `02-资料库/素材/`：其他可复用素材\n- `03-内容中心/`：选题、草稿、确认稿、完成稿和发布复盘\n- `04-项目/`：按项目沉淀阶段性材料\n- `05-经验与规则/`：确认过的长期要求和纠正记录\n\n## 使用原则\n先看 `本周重点.md`，再根据任务读取相关档案、规则和资料。不要一次把整个知识库塞进上下文。\n"
+    atomic(inside(root, "知识库地图.md"), generated + map_text)
+    start = "# 开始这里\n\n你不需要手动维护目录，直接告诉 AI 你想完成什么。\n\n## 第一次使用\n1. 告诉 AI：你在做什么、主要给谁看、现在最想完成什么。\n2. 放入一份真实资料，例如逐字稿、笔记、文档或已有作品。\n3. 让 AI 用你的资料完成一件真实任务，并列出它用了什么、哪些地方需要你核对。\n\n## 常用说法\n- 把这份资料放进知识库，告诉我存在哪里、真正读到了什么。\n- 这是对标内容，保留作者和来源，不要把对方经历写成我的经历。\n- 结合我的档案和这份资料，写一条 60 秒口播。\n- 这条要求以后只用于抖音口播，先给我看清楚再保存。\n- 打开知识库地图，告诉我现在有什么、缺什么。\n- 检查知识库健康状态，只报告问题，不要自动删除或搬文件。\n"
+    atomic(inside(root, "开始这里.md"), generated + start)
+    verified = inside(root, "05-经验与规则/已验证经验.md")
+    if not verified.exists():
+        atomic(verified, "# 已验证经验\n\n这里记录经过多次结果验证、且由你确认值得保留的经验。不要因为单条数据好就自动写成规律。\n")
+
+
 def initialize(root):
     if (root / "skills/chao-knowledge/SKILL.md").exists():
         raise KBError("这是开源代码目录；请另选私人知识库目录，避免资料混进源码")
-    if (root / STORE / "state.json").exists():
-        load(root)
-        return {"status": "already_initialized", "workspace": str(root)}
     root.mkdir(parents=True, exist_ok=True)
-    # Preflight every target before changing any existing file.
-    for rel in DIRS + (STORE, "开始使用.md"):
+    if (root / STORE / "state.json").exists():
+        state = load(root)
+        ensure_layout(root)
+        ensure_private_ignores(root)
+        state["version"] = VERSION
+        save_state(root, state)
+        render_views(root, state)
+        return {"status": "already_initialized", "workspace": str(root), "version": VERSION, "note": "已补齐 v0.2 可见结构；旧目录不自动搬移"}
+    for rel in DIRS + (STORE, "开始这里.md", "本周重点.md", "知识库地图.md"):
         if inside(root, rel).exists():
             raise KBError("已有同名文件或目录，未改动：" + rel)
     previous = {}
@@ -192,19 +287,15 @@ def initialize(root):
             previous[rel] = p.read_text(encoding="utf-8")
     if BLOCK_START in previous.get("AGENTS.md", ""):
         raise KBError("已有知识库入口但状态丢失；请检查备份，不自动重建")
-    for rel in DIRS + (STORE,):
-        inside(root, rel).mkdir()
-    state = {"app": "chao-knowledge", "schema": SCHEMA, "version": VERSION,
-             "created_at": now(), "profile": {}, "materials": {}, "rules": {},
-             "outputs": {}, "feedback": {}, "events": []}
+    ensure_layout(root)
+    state = {"app": "chao-knowledge", "schema": SCHEMA, "version": VERSION, "created_at": now(), "profile": {}, "materials": {}, "rules": {}, "outputs": {}, "feedback": {}, "events": []}
     for rel, text in previous.items():
         atomic(inside(root, STORE + "/backups/" + rel.replace(".", "_") + ".original.txt"), text)
     atomic(inside(root, "AGENTS.md"), previous.get("AGENTS.md", "").rstrip() + "\n\n" + BOOT)
-    ignore = "\n# Chao Knowledge: private runtime data; do not publish\n/.chao/\n/00-待整理/\n/01-资料/\n/02-作品/\n/03-复盘/\n/开始使用.md\n"
-    atomic(inside(root, ".gitignore"), previous.get(".gitignore", "").rstrip() + "\n" + ignore)
-    atomic(inside(root, "开始使用.md"), "# 从第一件事开始\n\n对 AI 说：带我完成第一次使用。\n\n先说你在做什么、给谁看、今天想完成什么；已有信息不必重复。然后放入一份真实资料，产出一份初稿并核对。\n\n常用说法：\n- 把这份资料放进知识库，告诉我读到了什么。\n- 用我的档案和这份资料做一份草稿，列出来源与待核对项。\n- 这条要求以后只用于入门口播，请先给我确认再保存。\n- 列出长期要求；撤销我指定的一条。\n- 检查有没有缺失资料、待转写内容或过期要求。\n\n资料保存在本地，但交给云端 AI 读取时可能发送给模型服务商；这不是离线隐私承诺。不要放密钥或未经许可的客户资料。\n")
+    ensure_private_ignores(root, previous.get(".gitignore", ""))
     save_state(root, state)
-    return {"status": "initialized", "workspace": str(root), "next": "带用户完成一个真实任务，不以目录创建作为完成标准", "preserved_configs": list(previous)}
+    render_views(root, state)
+    return {"status": "initialized", "workspace": str(root), "version": VERSION, "next": "先补充必要档案，再导入一份真实资料并完成一个真实任务", "preserved_configs": list(previous)}
 
 
 def parse_scope(values):
@@ -283,7 +374,7 @@ def ingest(root, state, args):
                 record["sources"].append(source)
             return {"status": "duplicate", "material": record}
     mid = uid("m")
-    directory = "01-资料/" + mid
+    directory = "02-资料库/" + args.collection + "/_资料/" + mid
     original = directory + "/original" + suffix
     atomic(inside(root, original), data)
     readable = None
@@ -293,7 +384,7 @@ def ingest(root, state, args):
     record = {"id": mid, "title": title, "dedupe_key": key, "sha256": digest(data),
               "original": original, "text_path": readable, "text_sha256": digest(text.encode()) if text is not None else None,
               "status": status, "sources": [source], "tags": tags,
-              "created_at": now(), "provenance": args.provenance}
+              "created_at": now(), "provenance": args.provenance, "collection": args.collection}
     state["materials"][mid] = record
     audit(state, "ingest", mid)
     return {"status": "saved", "material": record, "warning": "保存来源不等于核实内容；外部经历不属于用户"}
@@ -306,7 +397,7 @@ def extract(root, state, args):
     _, data = input_file(root, args.file, args.allow_external)
     text = decode(data)
     method = check_text(args.method, "读取/转写方法", 200)
-    rel = "01-资料/" + record["id"] + "/extracted.txt"
+    rel = str(Path(record["original"]).parent / "extracted.txt")
     atomic(inside(root, rel), text)
     record.update(text_path=rel, text_sha256=digest(text.encode()), status="extracted_unverified",
                   extraction={"method": method, "at": now(), "complete": bool(args.complete), "verified": False})
@@ -468,13 +559,13 @@ def save_output(root, state, args):
     if args.parent:
         get_record(state, "outputs", args.parent)
     oid = uid("o")
-    path = "02-作品/" + oid + ".md"
+    path = "03-内容中心/" + args.stage + "/" + oid + ".md"
     atomic(inside(root, path), text)
     row = {"id": oid, "title": title, "path": path, "sha256": digest(text.encode()),
-           "status": "draft", "sources": evidence, "parent": args.parent,
+           "status": "draft", "stage": args.stage, "sources": evidence, "parent": args.parent,
            "created_at": now(), "review": None, "unverified": [check_text(x, "待核对项", 500) for x in args.unverified]}
     state["outputs"][oid] = row
-    atomic(inside(root, "02-作品/" + oid + ".sources.json"), json.dumps(row, ensure_ascii=False, indent=2))
+    atomic(inside(root, "03-内容中心/" + args.stage + "/" + oid + ".sources.json"), json.dumps(row, ensure_ascii=False, indent=2))
     audit(state, "output_saved", oid)
     return {"output": row, "warning": "来源卡不是逐句事实核验，须人工检查经历归属、时效与表达；默认仅为草稿"}
 
@@ -490,7 +581,7 @@ def approve_output(root, state, args):
         if not source_path.is_file() or source_path.stat().st_size > MAX_TEXT or digest(source_path.read_bytes()) != source["text_sha256"]:
             raise KBError("草稿的来源正文已缺失或变化；重新核对并保存新版本")
     row.update(status="approved", review={"quote": quote, "at": now()})
-    atomic(inside(root, "02-作品/" + row["id"] + ".sources.json"), json.dumps(row, ensure_ascii=False, indent=2))
+    atomic(inside(root, str(Path(row["path"]).parent / (row["id"] + ".sources.json"))), json.dumps(row, ensure_ascii=False, indent=2))
     audit(state, "output_approved", row["id"])
     return {"output": row, "warning": "验收不等于已发布；本工具不会自动发布"}
 
@@ -531,43 +622,68 @@ def feedback(root, state, args):
     fid = uid("f")
     row = {"id": fid, "output_id": args.id, "metrics": metrics, "rates": rates, "warnings": warnings, "created_at": now()}
     state["feedback"][fid] = row
-    atomic(inside(root, "03-复盘/" + fid + ".json"), json.dumps(row, ensure_ascii=False, indent=2))
+    atomic(inside(root, "03-内容中心/已发布与复盘/" + fid + ".json"), json.dumps(row, ensure_ascii=False, indent=2))
     audit(state, "feedback_saved", fid)
     return row
 
 
-def health(root, state):
+def health(root, state, save_report=False):
     findings = []
+    def add(priority, kind, record_id=None, path=None, evidence=""):
+        row = {"priority": priority, "kind": kind, "evidence": evidence}
+        if record_id: row["id"] = record_id
+        if path: row["path"] = path
+        findings.append(row)
+    for rel in DIRS:
+        if not inside(root, rel).is_dir(): add("P0", "missing_directory", path=rel, evidence="知识库必要目录缺失")
+    for rel in ("开始这里.md", "本周重点.md", "知识库地图.md", "01-我的档案/我是谁.md", "05-经验与规则/我的长期要求.md"):
+        if not inside(root, rel).is_file(): add("P1", "missing_navigation", path=rel, evidence="人类可读入口缺失")
+    agents = inside(root, "AGENTS.md")
+    if not agents.is_file() or BLOCK_START not in agents.read_text(encoding="utf-8", errors="replace"):
+        add("P0", "agent_entry_missing", path="AGENTS.md", evidence="WorkBuddy 工作区入口缺失或未包含 Chao Knowledge 区块")
+    inbox = inside(root, "00-收件箱")
+    backlog = sum(1 for x in inbox.iterdir() if x.is_file()) if inbox.is_dir() else 0
+    if backlog >= 20: add("P1", "inbox_backlog", path="00-收件箱", evidence="待整理文件达到 %d 个" % backlog)
+    if not state.get("profile", {}).get("身份"): add("P1", "profile_missing", path="01-我的档案/我是谁.md", evidence="身份尚未填写")
+    if not state.get("profile", {}).get("受众"): add("P2", "audience_missing", path="01-我的档案/我的受众.md", evidence="受众尚未填写")
+    if not state.get("profile", {}).get("当前目标"): add("P2", "focus_missing", path="本周重点.md", evidence="当前目标尚未填写")
+    if any(inside(root, d).exists() for d in LEGACY_DIRS): add("P2", "legacy_layout", path="/", evidence="检测到 v0.1.x 旧目录；不会自动搬移，确认后再迁移")
     for record in state["materials"].values():
         for path_key, hash_key in (("original", "sha256"), ("text_path", "text_sha256")):
-            if not record[path_key]:
-                continue
+            if not record[path_key]: continue
             try:
                 p = inside(root, record[path_key])
-                if not p.is_file():
-                    findings.append({"kind": "missing", "id": record["id"], "path": record[path_key]})
-                elif p.stat().st_size > MAX_BYTES or digest(p.read_bytes()) != record[hash_key]:
-                    findings.append({"kind": "changed", "id": record["id"], "path": record[path_key]})
+                if not p.is_file(): add("P0", "missing", record["id"], record[path_key], "登记的资料文件不存在")
+                elif p.stat().st_size > MAX_BYTES or digest(p.read_bytes()) != record[hash_key]: add("P0", "changed", record["id"], record[path_key], "资料内容与登记哈希不一致")
             except KBError:
-                findings.append({"kind": "unsafe_path", "id": record["id"]})
-        if record["status"] in ("link_only", "needs_extraction"):
-            findings.append({"kind": record["status"], "id": record["id"]})
+                add("P0", "unsafe_path", record["id"], evidence="登记路径越界或不安全")
+        if record["status"] == "link_only": add("P2", "link_only", record["id"], evidence="只保存链接，正文尚未读取")
+        elif record["status"] == "needs_extraction": add("P1", "needs_extraction", record["id"], evidence="原件已保存，正文待提取/转写")
     for row in state["outputs"].values():
         try:
             p = inside(root, row["path"])
-            if not p.is_file() or p.stat().st_size > MAX_TEXT or digest(p.read_bytes()) != row["sha256"]:
-                findings.append({"kind": "output_missing_or_changed", "id": row["id"]})
+            if not p.is_file() or p.stat().st_size > MAX_TEXT or digest(p.read_bytes()) != row["sha256"]: add("P0", "output_missing_or_changed", row["id"], row["path"], "作品与登记版本不一致")
         except KBError:
-            findings.append({"kind": "unsafe_path", "id": row["id"]})
+            add("P0", "unsafe_path", row["id"], evidence="作品路径不安全")
     today = dt.datetime.now(dt.timezone.utc).date().isoformat()
     for row in state["rules"].values():
-        if row["status"] == "active" and row["expires_on"] and row["expires_on"] < today:
-            findings.append({"kind": "expired_rule", "id": row["id"]})
-    if not state["profile"]:
-        findings.append({"kind": "profile_empty"})
-    return {"version": VERSION, "counts": {k: len(state[k]) for k in ("materials", "outputs", "rules", "feedback")},
-            "findings": findings, "pending_rules": [r["id"] for r in state["rules"].values() if r["status"] == "proposed"],
-            "boundary": "这是文件完整性与状态检查，不是内容真实性、隐私合规或宿主兼容性的认证"}
+        if row["status"] == "active" and row["expires_on"] and row["expires_on"] < today: add("P1", "expired_rule", row["id"], evidence="已确认规则超过有效期")
+        if row["status"] == "proposed": add("P2", "pending_rule", row["id"], evidence="规则尚未确认，不应生效")
+    rank = {"P0": 0, "P1": 1, "P2": 2}
+    findings.sort(key=lambda x: (rank.get(x["priority"], 9), x.get("kind", ""), x.get("path", ""), x.get("id", "")))
+    status = "critical" if any(x["priority"] == "P0" for x in findings) else "attention" if any(x["priority"] == "P1" for x in findings) else "healthy"
+    result = {"version": VERSION, "status": status, "summary": {p: sum(1 for x in findings if x["priority"] == p) for p in ("P0", "P1", "P2")}, "counts": {k: len(state[k]) for k in ("materials", "outputs", "rules", "feedback")}, "findings": findings, "boundary": "这是结构、文件完整性与状态检查，不是内容真实性、隐私合规或宿主兼容性的认证"}
+    if save_report:
+        atomic(inside(root, STORE + "/latest-health.json"), json.dumps(result, ensure_ascii=False, indent=2) + "\n")
+        lines = ["# 知识库健康报告", "", "- 状态：**%s**" % status, "- P0：%d · P1：%d · P2：%d" % (result["summary"]["P0"], result["summary"]["P1"], result["summary"]["P2"]), ""]
+        if findings:
+            lines += ["## 发现的问题", ""]
+            for f in findings:
+                lines.append("- **%s** `%s`：%s" % (f["priority"], f.get("path") or f.get("id") or "知识库", f.get("evidence") or f["kind"]))
+        else:
+            lines.append("没有发现结构或文件完整性问题。")
+        atomic(inside(root, "05-经验与规则/知识库健康报告.md"), "\n".join(lines) + "\n")
+    return result
 
 
 def build_parser():
@@ -585,6 +701,7 @@ def build_parser():
     source.add_argument("--file"); source.add_argument("--url")
     p.add_argument("--allow-external", action="store_true")
     p.add_argument("--tag", action="append", default=[])
+    p.add_argument("--collection", choices=COLLECTIONS, default="素材")
     p.add_argument("--provenance", choices=("external", "user_statement", "user_original", "demo"), default="external")
     p = subs.add_parser("extract")
     p.add_argument("--id", required=True); p.add_argument("--file", required=True)
@@ -608,12 +725,14 @@ def build_parser():
     p.add_argument("--title", required=True); p.add_argument("--file", required=True)
     p.add_argument("--allow-external", action="store_true"); p.add_argument("--source", action="append", default=[])
     p.add_argument("--unverified", action="append", default=[]); p.add_argument("--parent")
+    p.add_argument("--stage", choices=OUTPUT_STAGES, default="草稿")
     p = subs.add_parser("approve")
     p.add_argument("--id", required=True); p.add_argument("--quote", required=True)
     p = subs.add_parser("feedback")
     p.add_argument("--id", required=True); p.add_argument("--file", required=True)
     p.add_argument("--allow-external", action="store_true")
-    subs.add_parser("health")
+    p = subs.add_parser("health")
+    p.add_argument("--save", action="store_true")
     return parser
 
 
@@ -654,10 +773,13 @@ def execute(args):
             if args.cmd == "search": result = search(root, state, args.query, args.limit)
             elif args.cmd == "context": result = context(root, state, args)
             elif args.cmd == "rules": result = {"rules": list(state["rules"].values())}
-            elif args.cmd == "health": result = health(root, state)
+            elif args.cmd == "health": result = health(root, state, args.save)
             else: raise KBError("未知命令")
         if write:
             save_state(root, state)
+            render_views(root, state)
+        elif args.cmd == "health" and args.save:
+            render_views(root, state)
         return result
 
 

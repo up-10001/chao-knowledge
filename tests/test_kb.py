@@ -7,6 +7,7 @@ import importlib.util
 import io
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -45,7 +46,7 @@ class WorkspaceCase(unittest.TestCase):
     def init(self):
         return self.call("init")
 
-    def put(self, name="00-待整理/source.md", content="知识库整理资料。AI helps organize personal notes."):
+    def put(self, name="00-收件箱/source.md", content="知识库整理资料。AI helps organize personal notes."):
         p = self.root / name
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding="utf-8")
@@ -53,7 +54,7 @@ class WorkspaceCase(unittest.TestCase):
 
     def material(self, title="知识库资料", content="知识库整理资料。AI helps organize personal notes."):
         self.put(content=content)
-        return self.call("ingest", "--title", title, "--file", "00-待整理/source.md")["material"]
+        return self.call("ingest", "--title", title, "--file", "00-收件箱/source.md")["material"]
 
     def proposal(self, *extra):
         return self.call("remember", "--key", "表达难度", "--text", "少用术语，多举例", *extra)["rule"]
@@ -62,15 +63,15 @@ class WorkspaceCase(unittest.TestCase):
         return self.call("confirm", "--id", rule["id"], "--quote", "确认按这个范围保存")
 
     def output(self):
-        self.put("00-待整理/draft.md", "这是虚构演示草稿，不含真实成绩。")
-        return self.call("save", "--title", "演示稿", "--file", "00-待整理/draft.md")["output"]
+        self.put("00-收件箱/draft.md", "这是虚构演示草稿，不含真实成绩。")
+        return self.call("save", "--title", "演示稿", "--file", "00-收件箱/draft.md")["output"]
 
     def metrics(self, changes=None):
         data = {"observed_at": "2026-10-06T12:00:00+08:00", "window_hours": 24,
                 "views": 1000, "likes": 30, "saves": 20, "shares": None}
         data.update(changes or {})
-        self.put("00-待整理/metrics.json", json.dumps(data, ensure_ascii=False))
-        return "00-待整理/metrics.json"
+        self.put("00-收件箱/metrics.json", json.dumps(data, ensure_ascii=False))
+        return "00-收件箱/metrics.json"
 
     def symlink(self, target, path):
         try:
@@ -83,7 +84,7 @@ class InitTests(WorkspaceCase):
     def test_initialize_creates_workspace(self):
         self.assertEqual(self.init()["status"], "initialized")
         self.assertTrue((self.root / ".chao/state.json").is_file())
-        self.assertTrue((self.root / "开始使用.md").is_file())
+        self.assertTrue((self.root / "开始这里.md").is_file())
 
     def test_repeat_init_keeps_existing_state(self):
         self.init()
@@ -101,9 +102,9 @@ class InitTests(WorkspaceCase):
         self.assertTrue((self.root / ".chao/backups/AGENTS_md.original.txt").exists())
 
     def test_existing_business_directory_is_not_changed(self):
-        self.put("01-资料/important.txt", "不能改变")
+        self.put("02-资料库/important.txt", "不能改变")
         with self.assertRaises(kb.KBError): self.init()
-        self.assertEqual((self.root / "01-资料/important.txt").read_text(encoding="utf-8"), "不能改变")
+        self.assertEqual((self.root / "02-资料库/important.txt").read_text(encoding="utf-8"), "不能改变")
         self.assertFalse((self.root / ".chao").exists())
 
     def test_root_and_home_are_rejected(self):
@@ -176,32 +177,32 @@ class IngestTests(WorkspaceCase):
 
     def test_duplicate_content_does_not_duplicate_material(self):
         first = self.material()
-        self.put("00-待整理/second.md")
-        result = self.call("ingest", "--title", "第二个标题", "--file", "00-待整理/second.md")
+        self.put("00-收件箱/second.md")
+        result = self.call("ingest", "--title", "第二个标题", "--file", "00-收件箱/second.md")
         self.assertEqual(result["status"], "duplicate")
         self.assertEqual(first["id"], result["material"]["id"])
         self.assertEqual(len(result["material"]["sources"]), 2)
 
     def test_utf8_bom_supported(self):
-        p = self.root / "00-待整理/bom.txt"; p.write_bytes(b"\xef\xbb\xbf" + "知识库".encode())
+        p = self.root / "00-收件箱/bom.txt"; p.write_bytes(b"\xef\xbb\xbf" + "知识库".encode())
         r = self.call("ingest", "--title", "BOM", "--file", str(p))["material"]
         self.assertEqual((self.root / r["text_path"]).read_text(encoding="utf-8"), "知识库")
 
     def test_non_utf8_rejected(self):
-        p = self.root / "00-待整理/gbk.txt"; p.write_bytes("知识库".encode("gbk"))
+        p = self.root / "00-收件箱/gbk.txt"; p.write_bytes("知识库".encode("gbk"))
         with self.assertRaises(kb.KBError): self.call("ingest", "--title", "bad", "--file", str(p))
 
     def test_secret_pattern_rejected(self):
         self.put(content="token: " + "ghp_" + "x" * 30)
-        with self.assertRaises(kb.KBError): self.call("ingest", "--title", "secret", "--file", "00-待整理/source.md")
+        with self.assertRaises(kb.KBError): self.call("ingest", "--title", "secret", "--file", "00-收件箱/source.md")
         self.assertFalse(kb.load(self.root)["materials"])
 
     def test_environment_file_rejected(self):
-        self.put("00-待整理/.env.txt", "ordinary text")
-        with self.assertRaises(kb.KBError): self.call("ingest", "--title", "env", "--file", "00-待整理/.env.txt")
+        self.put("00-收件箱/.env.txt", "ordinary text")
+        with self.assertRaises(kb.KBError): self.call("ingest", "--title", "env", "--file", "00-收件箱/.env.txt")
 
     def test_binary_marked_needs_extraction(self):
-        p = self.root / "00-待整理/sample.mp4"; p.write_bytes(b"FAKE TEST MEDIA NOT A REAL VIDEO")
+        p = self.root / "00-收件箱/sample.mp4"; p.write_bytes(b"FAKE TEST MEDIA NOT A REAL VIDEO")
         r = self.call("ingest", "--title", "fake media", "--file", str(p))["material"]
         self.assertEqual(r["status"], "needs_extraction")
         self.assertIsNone(r["text_path"])
@@ -230,34 +231,34 @@ class IngestTests(WorkspaceCase):
 
     def test_symlink_input_is_rejected(self):
         source = self.put()
-        self.symlink(source, self.root / "00-待整理/link.txt")
-        with self.assertRaises(kb.KBError): self.call("ingest", "--title", "link", "--file", "00-待整理/link.txt")
+        self.symlink(source, self.root / "00-收件箱/link.txt")
+        with self.assertRaises(kb.KBError): self.call("ingest", "--title", "link", "--file", "00-收件箱/link.txt")
 
     def test_extraction_keeps_unverified_state(self):
         r = self.call("ingest", "--title", "link", "--url", "https://example.com/a")["material"]
-        self.put("00-待整理/extracted.txt", "实际读取结果的测试替身，不是真实抓取。")
-        out = self.call("extract", "--id", r["id"], "--file", "00-待整理/extracted.txt", "--method", "测试夹具")
+        self.put("00-收件箱/extracted.txt", "实际读取结果的测试替身，不是真实抓取。")
+        out = self.call("extract", "--id", r["id"], "--file", "00-收件箱/extracted.txt", "--method", "测试夹具")
         self.assertEqual(out["material"]["status"], "extracted_unverified")
         self.assertFalse(out["material"]["extraction"]["complete"])
         self.assertFalse(out["material"]["extraction"]["verified"])
 
     def test_extraction_cannot_overwrite_readable_content(self):
         r = self.material()
-        with self.assertRaises(kb.KBError): self.call("extract", "--id", r["id"], "--file", "00-待整理/source.md", "--method", "test")
+        with self.assertRaises(kb.KBError): self.call("extract", "--id", r["id"], "--file", "00-收件箱/source.md", "--method", "test")
 
     def test_empty_text_rejected(self):
         self.put(content="   \n")
-        with self.assertRaises(kb.KBError): self.call("ingest", "--title", "empty", "--file", "00-待整理/source.md")
+        with self.assertRaises(kb.KBError): self.call("ingest", "--title", "empty", "--file", "00-收件箱/source.md")
 
     def test_unsupported_extension_rejected(self):
-        self.put("00-待整理/code.sh", "echo hi")
-        with self.assertRaises(kb.KBError): self.call("ingest", "--title", "shell", "--file", "00-待整理/code.sh")
+        self.put("00-收件箱/code.sh", "echo hi")
+        with self.assertRaises(kb.KBError): self.call("ingest", "--title", "shell", "--file", "00-收件箱/code.sh")
 
     def test_invalid_tag_does_not_leave_material_files(self):
         self.put()
         with self.assertRaises(kb.KBError):
-            self.call("ingest", "--title", "bad tag", "--file", "00-待整理/source.md", "--tag", "")
-        self.assertFalse(list((self.root / "01-资料").iterdir()))
+            self.call("ingest", "--title", "bad tag", "--file", "00-收件箱/source.md", "--tag", "")
+        self.assertFalse(list((self.root / "02-资料库/素材").iterdir()))
 
     def test_text_size_limit(self):
         with self.assertRaises(kb.KBError): kb.decode(b"a" * (kb.MAX_TEXT + 1))
@@ -394,22 +395,22 @@ class OutputFeedbackTests(WorkspaceCase):
     def test_output_starts_as_draft(self):
         row = self.output()
         self.assertEqual(row["status"], "draft")
-        self.assertTrue((self.root / ("02-作品/" + row["id"] + ".sources.json")).is_file())
+        self.assertTrue((self.root / ("03-内容中心/草稿/" + row["id"] + ".sources.json")).is_file())
 
     def test_readable_source_attached(self):
-        source = self.material(); self.put("00-待整理/draft.md", "知识库草稿")
-        row = self.call("save", "--title", "稿", "--file", "00-待整理/draft.md", "--source", source["id"])["output"]
+        source = self.material(); self.put("00-收件箱/draft.md", "知识库草稿")
+        row = self.call("save", "--title", "稿", "--file", "00-收件箱/draft.md", "--source", source["id"])["output"]
         self.assertEqual(row["sources"][0]["id"], source["id"])
 
     def test_link_only_cannot_be_used_as_read_source(self):
         source = self.call("ingest", "--title", "link", "--url", "https://example.com")["material"]
-        self.put("00-待整理/draft.md", "草稿")
-        with self.assertRaises(kb.KBError): self.call("save", "--title", "稿", "--file", "00-待整理/draft.md", "--source", source["id"])
+        self.put("00-收件箱/draft.md", "草稿")
+        with self.assertRaises(kb.KBError): self.call("save", "--title", "稿", "--file", "00-收件箱/draft.md", "--source", source["id"])
 
     def test_versions_do_not_overwrite(self):
         old = self.output()
-        self.put("00-待整理/draft.md", "新版本")
-        new = self.call("save", "--title", "新稿", "--file", "00-待整理/draft.md", "--parent", old["id"])["output"]
+        self.put("00-收件箱/draft.md", "新版本")
+        new = self.call("save", "--title", "新稿", "--file", "00-收件箱/draft.md", "--parent", old["id"])["output"]
         self.assertNotEqual(old["id"], new["id"])
         self.assertEqual(new["parent"], old["id"])
         self.assertIn("虚构", (self.root / old["path"]).read_text(encoding="utf-8"))
@@ -421,8 +422,8 @@ class OutputFeedbackTests(WorkspaceCase):
 
     def test_changed_source_blocks_approval(self):
         source = self.material()
-        self.put("00-待整理/draft.md", "基于资料的草稿")
-        row = self.call("save", "--title", "稿", "--file", "00-待整理/draft.md", "--source", source["id"])["output"]
+        self.put("00-收件箱/draft.md", "基于资料的草稿")
+        row = self.call("save", "--title", "稿", "--file", "00-收件箱/draft.md", "--source", source["id"])["output"]
         (self.root / source["text_path"]).write_text("被改变的来源", encoding="utf-8")
         with self.assertRaises(kb.KBError):
             self.call("approve", "--id", row["id"], "--quote", "确认")
@@ -464,6 +465,81 @@ class OutputFeedbackTests(WorkspaceCase):
         self.assertGreater(len(out["warnings"]), 1)
 
 
+class V2VisibleLayerTests(WorkspaceCase):
+    def setUp(self):
+        super().setUp(); self.init()
+
+    def test_visible_layout_is_created(self):
+        expected = [
+            "开始这里.md", "本周重点.md", "知识库地图.md",
+            "01-我的档案/我是谁.md", "01-我的档案/我的业务.md", "01-我的档案/我的受众.md",
+            "02-资料库/对标内容", "02-资料库/用户反馈", "02-资料库/行业资料", "02-资料库/素材",
+            "03-内容中心/选题池", "03-内容中心/草稿", "03-内容中心/待确认", "03-内容中心/已完成", "03-内容中心/已发布与复盘",
+            "04-项目", "05-经验与规则/我的长期要求.md", "05-经验与规则/AI纠正记录.md", "05-经验与规则/已验证经验.md",
+        ]
+        for rel in expected:
+            self.assertTrue((self.root / rel).exists(), rel)
+
+    def test_profile_updates_human_readable_views(self):
+        self.call("profile", "--field", "身份", "--value", "内容创作者", "--quote", "我现在做内容")
+        self.call("profile", "--field", "受众", "--value", "AI初学者", "--quote", "主要给AI初学者看")
+        self.call("profile", "--field", "当前目标", "--value", "完成第一条知识库视频", "--quote", "本周先完成第一条")
+        self.assertIn("内容创作者", (self.root / "01-我的档案/我是谁.md").read_text(encoding="utf-8"))
+        self.assertIn("AI初学者", (self.root / "01-我的档案/我的受众.md").read_text(encoding="utf-8"))
+        self.assertIn("第一条知识库视频", (self.root / "本周重点.md").read_text(encoding="utf-8"))
+
+    def test_rule_view_tracks_activation_and_revocation(self):
+        rule = self.proposal("--scope", "task=口播")
+        self.assertNotIn("少用术语，多举例", (self.root / "05-经验与规则/我的长期要求.md").read_text(encoding="utf-8"))
+        self.activate(rule)
+        text = (self.root / "05-经验与规则/我的长期要求.md").read_text(encoding="utf-8")
+        self.assertIn("少用术语，多举例", text)
+        self.assertIn("task=口播", text)
+        self.call("revoke", "--id", rule["id"], "--quote", "撤销")
+        self.assertNotIn("少用术语，多举例", (self.root / "05-经验与规则/我的长期要求.md").read_text(encoding="utf-8"))
+
+    def test_material_routes_to_selected_collection(self):
+        self.put(content="公开对标逐字稿，虚构测试内容。")
+        row = self.call("ingest", "--title", "对标", "--file", "00-收件箱/source.md", "--collection", "对标内容", "--provenance", "external")["material"]
+        self.assertEqual(row["collection"], "对标内容")
+        self.assertTrue(row["original"].startswith("02-资料库/对标内容/"))
+        self.assertTrue((self.root / row["original"]).is_file())
+
+    def test_output_routes_to_selected_stage(self):
+        self.put("00-收件箱/topic.md", "一个虚构选题")
+        row = self.call("save", "--title", "选题", "--file", "00-收件箱/topic.md", "--stage", "选题池")["output"]
+        self.assertEqual(row["stage"], "选题池")
+        self.assertTrue(row["path"].startswith("03-内容中心/选题池/"))
+
+    def test_health_has_priorities_and_can_save_report(self):
+        result = self.call("health")
+        self.assertIn(result["status"], ("healthy", "attention", "critical"))
+        self.assertTrue(all(row["priority"] in ("P0", "P1", "P2") for row in result["findings"]))
+        saved = self.call("health", "--save")
+        self.assertEqual(saved["status"], result["status"])
+        self.assertTrue((self.root / ".chao/latest-health.json").is_file())
+        self.assertTrue((self.root / "05-经验与规则/知识库健康报告.md").is_file())
+
+    def test_health_detects_missing_entry_as_p0(self):
+        (self.root / "AGENTS.md").unlink()
+        result = self.call("health")
+        rows = [x for x in result["findings"] if x["kind"] == "agent_entry_missing"]
+        self.assertEqual(rows[0]["priority"], "P0")
+        self.assertEqual(result["status"], "critical")
+
+    def test_reinit_upgrades_existing_workspace_views_and_ignore(self):
+        # Simulate an older initialized workspace by removing v0.2 views and ignore lines.
+        for rel in ("知识库地图.md", "本周重点.md", "01-我的档案/我是谁.md"):
+            p = self.root / rel
+            if p.exists(): p.unlink()
+        (self.root / ".gitignore").write_text("legacy-only/\n", encoding="utf-8")
+        out = self.init()
+        self.assertEqual(out["status"], "already_initialized")
+        self.assertTrue((self.root / "知识库地图.md").is_file())
+        self.assertIn("/02-资料库/", (self.root / ".gitignore").read_text(encoding="utf-8"))
+        self.assertEqual(kb.load(self.root)["version"], "0.2.0")
+
+
 class PackageTests(WorkspaceCase):
     def test_skill_metadata_and_references(self):
         skill = REPO / "skills/chao-knowledge/SKILL.md"
@@ -499,6 +575,33 @@ class PackageTests(WorkspaceCase):
         p.write_text("user customization")
         with self.assertRaises(ValueError): installer.install(str(self.root))
         self.assertEqual(p.read_text(), "user customization")
+
+    def make_old_clean_install(self):
+        target = self.root / ".codebuddy/skills/chao-knowledge"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(installer.SOURCE, target)
+        skill = target / "SKILL.md"
+        skill.write_text(skill.read_text(encoding="utf-8") + "\n<!-- old packaged version -->\n", encoding="utf-8")
+        files = installer.inventory(target)
+        (target / "manifest.json").write_text(json.dumps({"version": "0.1.9", "algorithm": "sha256", "files": files}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        return target
+
+    def test_explicit_update_replaces_clean_older_package_and_keeps_backup(self):
+        target = self.make_old_clean_install()
+        with self.assertRaises(ValueError): installer.install(str(self.root))
+        out = installer.install(str(self.root), update=True)
+        self.assertEqual(out["status"], "updated")
+        self.assertEqual(installer.inventory(target), installer.inventory(installer.SOURCE))
+        backup = Path(out["backup"])
+        self.assertTrue(backup.is_dir())
+        self.assertIn("old packaged version", (backup / "SKILL.md").read_text(encoding="utf-8"))
+
+    def test_update_refuses_manually_changed_older_package(self):
+        target = self.make_old_clean_install()
+        p = target / "SKILL.md"
+        p.write_text(p.read_text(encoding="utf-8") + "manual edit\n", encoding="utf-8")
+        with self.assertRaises(ValueError): installer.install(str(self.root), update=True)
+        self.assertIn("manual edit", p.read_text(encoding="utf-8"))
 
     def test_install_rejects_symlink_directory(self):
         external = self.base / "external"; external.mkdir()

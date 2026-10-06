@@ -32,7 +32,7 @@ def inventory(source):
     return rows
 
 
-def install(workspace, initialize=False):
+def install(workspace, initialize=False, update=False):
     # Manifest integrity is a consistency check, not a signature or proof of trust.
     expected = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
     actual = inventory(SOURCE)
@@ -44,12 +44,54 @@ def install(workspace, initialize=False):
         raise ValueError("请另选私人工作区，不要把知识库建在源码仓库里")
     root.mkdir(parents=True, exist_ok=True)
     target = kb.inside(root, ".codebuddy/skills/chao-knowledge")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    current_inventory = None
     if target.exists():
-        if not target.is_dir() or inventory(target) != actual:
-            raise ValueError("已安装版本不同或曾被修改；未覆盖。请先备份，再由用户选择更新方式")
-        result = {"status": "already_installed", "path": str(target)}
+        if not target.is_dir():
+            raise ValueError("技能目标路径不是文件夹；停止安装")
+        try:
+            current_inventory = inventory(target)
+        except Exception:
+            raise ValueError("现有技能目录无法安全读取；未覆盖")
+        if current_inventory == actual:
+            result = {"status": "already_installed", "path": str(target), "version": expected["version"]}
+        elif not update:
+            raise ValueError("已安装版本不同或曾被修改；未覆盖。确认更新后请使用 --update")
+        else:
+            manifest_path = target / "manifest.json"
+            if not manifest_path.is_file():
+                raise ValueError("现有技能缺少 manifest，可能被手工修改；为保护自定义内容不自动更新")
+            try:
+                old_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except Exception:
+                raise ValueError("现有 manifest 无法读取；停止更新")
+            # Only update a previously packaged Chao Knowledge install. Any manual edit blocks update.
+            if old_manifest.get("files") != current_inventory:
+                raise ValueError("现有技能曾被修改；为保护自定义内容不自动更新")
+            backup_root = kb.inside(root, ".codebuddy/skill-backups")
+            backup_root.mkdir(parents=True, exist_ok=True)
+            old_version = str(old_manifest.get("version") or "unknown").replace("/", "_").replace("\\", "_")
+            backup = backup_root / ("chao-knowledge-v" + old_version)
+            if backup.exists():
+                raise ValueError("更新备份已存在：" + str(backup) + "；请先确认再处理")
+            stage = Path(tempfile.mkdtemp(prefix=".chao-install-", dir=str(target.parent)))
+            try:
+                for name in list(actual) + ["manifest.json"]:
+                    src = SOURCE / name
+                    dest = stage / name
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(src, dest)
+                target.rename(backup)
+                try:
+                    stage.rename(target)
+                except Exception:
+                    backup.rename(target)
+                    raise
+            finally:
+                if stage.exists():
+                    shutil.rmtree(stage)
+            result = {"status": "updated", "path": str(target), "version": expected["version"], "backup": str(backup)}
     else:
-        target.parent.mkdir(parents=True, exist_ok=True)
         stage = Path(tempfile.mkdtemp(prefix=".chao-install-", dir=str(target.parent)))
         try:
             for name in list(actual) + ["manifest.json"]:
@@ -57,7 +99,6 @@ def install(workspace, initialize=False):
                 dest = stage / name
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(src, dest)
-            # mkdir is the ownership claim; never replace another installation.
             target.mkdir()
             try:
                 for child in stage.iterdir():
@@ -81,9 +122,10 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--workspace", required=True)
     p.add_argument("--init", action="store_true")
+    p.add_argument("--update", action="store_true", help="仅在用户明确确认后，用已打包版本替换未修改的旧版 Skill，并保留备份")
     a = p.parse_args()
     try:
-        print(json.dumps({"ok": True, "result": install(a.workspace, a.init)}, ensure_ascii=False, indent=2))
+        print(json.dumps({"ok": True, "result": install(a.workspace, a.init, a.update)}, ensure_ascii=False, indent=2))
         return 0
     except Exception as e:
         print(json.dumps({"ok": False, "error": str(e)}, ensure_ascii=False), file=sys.stderr)

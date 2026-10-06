@@ -1,34 +1,34 @@
-# 安装说明
+# 安装说明 · v0.2.0
 
 ## 推荐：工作区级安装
 
-1. 在 WorkBuddy 桌面端选定一个专门的本地工作区，不选择整个用户主目录。
-2. 下载本项目 v0.1.1 源码并解压到临时位置，先读 README、SKILL.md 和脚本。
-3. 检查 Python 3.9+。从源码目录运行 `python3 tools/install.py --workspace "实际知识库路径" --init`；Windows 检测 `py -3`。
-4. 回到同一工作区新建对话，明确调用 chao-knowledge，完成一份真实草稿。
+1. 新建一个独立知识库文件夹，不要选择桌面、用户主目录或整个磁盘。
+2. 下载本项目 v0.2.0 源码到临时位置，先阅读 README、SKILL.md 和安装脚本。
+3. 在源码目录执行：
 
-安装器只复制清单内的技能文件，不复制 tests/docs 或任何个人资料。它不会关闭权限控制，不修改 WorkBuddy 全局配置，不安装第三方依赖。不同版本/用户修改过的安装会停止，不能一键覆盖。
+`python3 tools/install.py --workspace "/你的路径/我的 AI 知识库" --init`
+
+Windows 可按环境使用 `py -3 tools/install.py --workspace "D:\\我的AI知识库" --init`。
+
+安装器把 Skill 放到当前工作区 `.codebuddy/skills/chao-knowledge/`，并调用初始化脚本。已有不同文件不会被静默覆盖。
 
 ## 可选：导入 ZIP
 
-技能面板支持导入本地包；使用 `dist/chao-knowledge-v0.1.1.zip`，不是整个源码压缩包。包内为一个 chao-knowledge 目录，含 SKILL.md、scripts、references、assets、LICENSE 和 manifest。
+版本发布页提供 `chao-knowledge-v0.2.0.zip`。ZIP 内只有技能包，不包含你的私人知识库。WorkBuddy 是否能从 ZIP 自动识别，取决于当前客户端版本；如失败，使用工作区级安装。
 
-客户端对包格式和界面的处理以实际版本为准，本项目尚未用 WorkBuddy GUI 验证。识别失败可解压，将完整 chao-knowledge 目录放入工作区 `.codebuddy/skills/`，避免同名目录嵌套。目录方式也需新建任务测试技能是否加载。
+## 从 v0.1.x 更新
 
-## 安全更新与卸载
+从源码目录执行：
 
-更新前备份当前 Skill 文件夹，确认是否有自己修改过的指令；新版本先放到新的测试工作区。不要以升级为由删除 `.chao/` 或业务资料。
+`python3 tools/install.py --workspace "/你的路径/我的 AI 知识库" --update --init`
 
-卸载只移除技能文件夹；知识库业务资料保留。若要移除 AGENTS.md 入口，仅删除 `chao-knowledge:begin/end` 标记包围的块，保留其他内容。彻底删除业务资料与系统备份须用户另外明确授权。
+`--update` 只会替换一个**清单完整、未被手工修改**的旧版 chao-knowledge，并把旧 Skill 备份到 `.codebuddy/skill-backups/`。如果检测到用户手工改过旧 Skill，会直接停止，不覆盖自定义内容。
+
+随后 v0.2 会补齐新的可见目录和 Markdown 视图，但不会自动搬移旧的 `00-待整理`、`01-资料`、`02-作品`、`03-复盘`。先运行健康检查，确认迁移计划后再处理。
 
 ## 常见问题
 
-Python 缺失：详见 Skill 内 `references/fallback.md`，先用手动简化模式或由用户决定安装依赖。
-
-已有目录冲突：停止覆盖，在新工作区试用；不自动迁移用户成熟的知识库。
-
-权限不足：由用户授予最小必要文件权限，不以关闭沙箱或无限制目录访问解决。
-
-网络无法访问 GitHub：使用已经获取并校验过的本地包；不能把下载失败描述成安装成功。
-
-新对话“不记得”：检查是否选择同一工作区、技能是否启用、AGENTS.md 是否被宿主读取；明确调用 context 并核对规则 ID，不能只凭生成语气相近认定记忆成功。
+- Python 不可用：按 `references/fallback.md` 的手动降级方式使用，不要让 Agent 擅自安装系统软件。
+- 视频链接没有逐字稿：只保存链接不等于读取成功，请提供本地视频/逐字稿或使用宿主已有转写能力。
+- WorkBuddy 没发现 Skill：检查工作区、`.codebuddy/skills/chao-knowledge/SKILL.md`、客户端权限和重新载入。
+- 目录冲突：停止自动写入，先确认原目录用途，不删除现有文件。
