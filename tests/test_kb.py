@@ -494,7 +494,7 @@ class V2VisibleLayerTests(WorkspaceCase):
         self.activate(rule)
         text = (self.root / "05-经验与规则/我的长期要求.md").read_text(encoding="utf-8")
         self.assertIn("少用术语，多举例", text)
-        self.assertIn("task=口播", text)
+        self.assertIn("任务：口播", text)
         self.call("revoke", "--id", rule["id"], "--quote", "撤销")
         self.assertNotIn("少用术语，多举例", (self.root / "05-经验与规则/我的长期要求.md").read_text(encoding="utf-8"))
 
@@ -537,7 +537,7 @@ class V2VisibleLayerTests(WorkspaceCase):
         self.assertEqual(out["status"], "already_initialized")
         self.assertTrue((self.root / "知识库地图.md").is_file())
         self.assertIn("/02-资料库/", (self.root / ".gitignore").read_text(encoding="utf-8"))
-        self.assertEqual(kb.load(self.root)["version"], "0.2.1")
+        self.assertEqual(kb.load(self.root)["version"], kb.VERSION)
 
 
 class PackageTests(WorkspaceCase):

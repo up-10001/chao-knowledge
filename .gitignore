@@ -14,3 +14,16 @@ __pycache__/
 03-复盘/
 开始使用.md
 .runtime-tests/
+
+# Personal workspace data must never enter this public repository.
+/00-收件箱/
+/01-我的档案/
+/02-资料库/
+/03-内容中心/
+/04-项目/
+/05-经验与规则/
+/开始这里.md
+/本周重点.md
+/知识库地图.md
+.chao-init-lock/
+.chao-install-lock/

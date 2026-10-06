@@ -1,16 +1,16 @@
 {
-  "version": "0.2.1",
+  "version": "0.3.0",
   "algorithm": "sha256",
   "files": {
     "LICENSE": "5517382eec92bda5a06b19a14640714a50b8fc38bc26e1cccc8f6e826b47102c",
-    "SKILL.md": "810990af549c8f0d7cd8c369005dc6ea9d52cf65b03c2f3a96b19ebf38dbc479",
+    "SKILL.md": "e40019589ff64dc84e446f1ad09e65cc5ec1747d52be4863497e8dc051df05d8",
     "assets/feedback-template.json": "79c562559a7b46cab10d156e8a9c382347218506edc10cd703361bcbee7b9854",
     "assets/sample-profile.json": "29095e433f69a509f26fd110511e577b2af9e0fd230c8fff96962f5104eacef2",
     "assets/sample-source.md": "387f27a1cb6fe2074b8608f8ea8608a71703ba1d26647c4b9c778ceca0cc52f3",
-    "references/commands.md": "c4ffc2312406c9a22ddc97a47a795ccc63f1ddc39fc34b85b90c3a4b77853016",
-    "references/creator-workflow.md": "df7d99f62a4e53c6fa4f4aac7e76963deab1df61336d68c0b96bf590e1ab7686",
-    "references/fallback.md": "7a66c39ab4ca27f553b79f7e763f0e75bd313b46c263a0255c61fff8298e7119",
+    "references/commands.md": "876c926fc9cd9b488025535fcc429954e1d07114f994967ac72a094473bf861a",
+    "references/creator-workflow.md": "19d46d823cf565f5f15cdc7ba30f555aca39a5229045bafb13df0fa0ae3fcfd7",
+    "references/fallback.md": "13015d4906d77d14747bcc2e47351076df5c7ad9f34f9e63d9bb8470d4282328",
     "references/quality.md": "b463c3e924e4ef5671664a762085c2080400bc87f2d1c60f1c98002416c2a8c1",
-    "scripts/kb.py": "de44c9277ad4269d10c9d35afbe62f1bdce832fe86a6f6e925e92f414cd0456b"
+    "scripts/kb.py": "b9439b8e500d2200be517410d7f4aaec33d1f3da51788d0b9ad951770643a529"
   }
 }
