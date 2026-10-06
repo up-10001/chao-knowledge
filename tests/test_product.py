@@ -419,6 +419,30 @@ class InstallAndHistoricalUpgradeTests(WorkspaceCase):
         for key in ['profile','materials','outputs','rules','feedback']:self.assertEqual(after[key],before[key])
         self.assertEqual((self.root/'自定义文件.md').read_bytes(),custom)
 
+    def test_actual_v01_to_v02_to_v03_upgrade_chain(self):
+        old=self.historical_repo('v0.1.1');middle=self.historical_repo('v0.2.1')
+        def install_old(repo,update=False):
+            args=[sys.executable,str(repo/'tools/install.py'),'--workspace',str(self.root),'--init']
+            if update:args+=['--update']
+            p=subprocess.run(args,capture_output=True,text=True,encoding='utf-8');self.assertEqual(p.returncode,0,p.stderr)
+        install_old(old)
+        script=old/'skills/chao-knowledge/scripts/kb.py'
+        self.put('00-待整理/notes.md','合成测试资料：会议记录必须保留')
+        m=self.run_script(script,'ingest','--title','历史资料','--file','00-待整理/notes.md')['material']
+        rule=self.run_script(script,'remember','--key','历史要求','--text','先列具体依据','--scope','task=方案')['rule']
+        self.run_script(script,'confirm','--id',rule['id'],'--quote','测试用户确认用于方案')
+        self.put('00-待整理/draft.md','合成测试的历史作品')
+        output=self.run_script(script,'save','--title','历史作品','--file','00-待整理/draft.md','--source',m['id'])['output']
+        before={path:(self.root/path).read_bytes() for path in [m['original'],m['text_path'],output['path']]}
+        original=json.loads((self.root/'.chao/state.json').read_text(encoding='utf-8'))
+        install_old(middle,True)
+        state=json.loads((self.root/'.chao/state.json').read_text(encoding='utf-8'));self.assertEqual(state['version'],'0.2.1')
+        installer.install(str(self.root),True,True)
+        state=kb.load(self.root);self.assertEqual(state['version'],'0.3.0')
+        for group in ['materials','rules','outputs']:self.assertEqual(state[group],original[group])
+        for path,data in before.items():self.assertEqual((self.root/path).read_bytes(),data)
+        self.assertEqual(self.call('context','--task','方案','--scope','task=方案')['rules'][0]['id'],rule['id'])
+
     def test_old_manual_mirror_edit_blocks_upgrade_without_changing_install(self):
         repo=self.historical_repo('v0.2.1')
         p=subprocess.run([sys.executable,str(repo/'tools/install.py'),'--workspace',str(self.root),'--init'],capture_output=True)
