@@ -1,0 +1,15 @@
+{
+  "version": "0.1.0",
+  "algorithm": "sha256",
+  "files": {
+    "LICENSE": "5517382eec92bda5a06b19a14640714a50b8fc38bc26e1cccc8f6e826b47102c",
+    "SKILL.md": "15dd0965c79af20b182963d97cf27fcaa7dcc924a0b472d3bc006f05f4b864d6",
+    "assets/demo-profile.json": "81244914c08ba71faabb925829e81f09ab6965f606414f8d3d9af56f089235e9",
+    "assets/demo-source.md": "387f27a1cb6fe2074b8608f8ea8608a71703ba1d26647c4b9c778ceca0cc52f3",
+    "assets/feedback-template.json": "79c562559a7b46cab10d156e8a9c382347218506edc10cd703361bcbee7b9854",
+    "references/commands.md": "2da22730c699c29cb9c96d8469f87132203b3fa862866883a29a28fefd7fbfad",
+    "references/fallback.md": "7a66c39ab4ca27f553b79f7e763f0e75bd313b46c263a0255c61fff8298e7119",
+    "references/quality.md": "b13127eecde5083f05d335fe2e96cd7c5d45335696c8fa062daaecc7571a6a31",
+    "scripts/kb.py": "76a939c3f64884a31f600c7aabed241719dca99e452df629614c7a9008c94959"
+  }
+}

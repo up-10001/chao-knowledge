@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.coverage
+.env*
+*.pem
+*.key
+.DS_Store
+.chao/
+00-待整理/
+01-资料/
+02-作品/
+03-复盘/
+开始使用.md
+.runtime-tests/

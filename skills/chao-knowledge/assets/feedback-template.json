@@ -1,0 +1,11 @@
+{
+  "observed_at": "2026-10-06T20:00:00+08:00",
+  "window_hours": 24,
+  "views": null,
+  "likes": null,
+  "comments": null,
+  "saves": null,
+  "shares": null,
+  "followers": null,
+  "note": "模板而非真实数据。请替换观察时间和发布后的采样窗口；不知道的计数保留 null。"
+}
