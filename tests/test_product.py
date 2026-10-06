@@ -314,6 +314,20 @@ class SafetyAndLifecycleTests(WorkspaceCase):
         self.call('experience-revoke','--id',e['id'],'--quote','撤销这个经验')
         self.assertFalse(self.call('context','--task','新稿','--scope','platform=抖音','--scope','audience=AI初学者')['experience'])
 
+    def test_project_experience_keeps_scope_through_revision(self):
+        ids=[]
+        for title in ['独立选题一','独立选题二']:
+            self.put('00-收件箱/draft.md','合成项目稿')
+            parent=self.call('save','--title',title,'--file','00-收件箱/draft.md','--project','会议项目')['output']
+            revision=self.call('save','--title',title+'二稿','--file','00-收件箱/draft.md','--parent',parent['id'],'--scope','task=口播','--duration','60')['output']
+            done=self.call('approve','--id',revision['id'],'--quote','测试核对完成')['output']
+            pub=self.call('publish','--id',done['id'],'--platform','抖音','--audience','AI初学者','--at','2026-10-06T12:00:00+08:00','--quote','合成发布登记')['output']
+            ids.append(self.call('feedback','--id',pub['id'],'--file',self.metrics())['id'])
+        args=['experience','--kind','validated','--title','项目经验','--text','在会议项目继续试用具体例子','--scope','project=会议项目','--quote','测试确认保留这个项目的经验']
+        for fid in ids:args+=['--feedback',fid]
+        self.assertEqual(self.call(*args)['experience']['scope'],{'project':'会议项目'})
+        self.assertFalse(self.call('context','--task','新任务','--scope','project=其他项目')['experience'])
+
     def test_map_links_to_records_and_marks_history(self):
         m=self.material();o=self.output(); self.put('00-收件箱/draft.md','二稿')
         new=self.call('save','--title','新稿','--file','00-收件箱/draft.md','--parent',o['id'],'--project','示例项目')['output']

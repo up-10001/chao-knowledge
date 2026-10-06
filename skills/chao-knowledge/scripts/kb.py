@@ -1015,6 +1015,7 @@ def save_output(root, state, args):
     if args.parent:
         scope = scope or previous.get("scope", {})
         project = project or previous.get("project")
+    if project: scope["project"]=project
     oid = uid("o")
     path = "03-内容中心/" + args.stage + "/" + oid + ".md"
     atomic(inside(root, path), text)
