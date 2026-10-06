@@ -401,11 +401,11 @@ def ensure_private_ignores(root, existing=None):
         else:
             existing = ""
     lines = ["/.chao/", "/00-收件箱/", "/01-我的档案/", "/02-资料库/", "/03-内容中心/", "/04-项目/", "/05-经验与规则/", "/开始这里.md", "/本周重点.md", "/知识库地图.md"]
-    text = existing.rstrip()
-    missing = [line for line in lines if line not in text.splitlines()]
+    missing = [line for line in lines if line not in existing.splitlines()]
     if missing:
-        text += "\n\n# Chao Knowledge: private runtime data; do not publish\n" + "\n".join(missing)
-    atomic(p, text.strip() + "\n")
+        text=existing+("\n" if existing and not existing.endswith("\n") else "")
+        text+="\n# Chao Knowledge: private runtime data; do not publish\n"+"\n".join(missing)+"\n"
+        atomic(p,text)
 
 
 def legacy_documents(state):
@@ -570,8 +570,9 @@ def render_views(root, state):
 def sync_views(root, state, apply=False, quote=None):
     changed = view_drift(root, state)
     missing = [r for r in view_documents(state) if not inside(root,r).exists()]
-    result = {"status": "plan", "changed": changed, "missing": missing,
-              "action": "先读出手工改动并确认是否更新档案；应用时备份改动文件，再从机器状态生成可读文件。业务资料与作品不改动"}
+    directories=[r for r in DIRS if not inside(root,r).exists()]
+    result = {"status": "plan", "changed": changed, "missing": missing, "missing_directories":directories,
+              "action": "先读出手工改动并确认是否更新档案；应用时备份改动文件，从机器状态生成可读文件并补齐列出的空目录；资料与作品不改动"}
     if apply:
         check_text(quote, "同步范围确认", 1000)
         backup = STORE + "/backups/sync-" + uuid.uuid4().hex[:12]
@@ -632,7 +633,7 @@ def _initialize(root):
     with lock(root), transaction(root):
         for rel, text in previous.items():
             atomic(inside(root, STORE + "/backups/" + rel.replace(".", "_") + ".original.txt"), text)
-        atomic(inside(root, "AGENTS.md"), previous.get("AGENTS.md", "").rstrip() + "\n\n" + BOOT)
+        atomic(inside(root, "AGENTS.md"), previous.get("AGENTS.md", "") + "\n\n" + BOOT)
         ensure_private_ignores(root, previous.get(".gitignore", ""))
         render_views(root, state)
         save_state(root, state)

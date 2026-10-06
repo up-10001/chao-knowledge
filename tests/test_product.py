@@ -143,6 +143,11 @@ class ProjectionAndTransactionTests(WorkspaceCase):
             with self.assertRaises(kb.KBError): self.call('context','--task','任务')
             self.assertEqual((self.root/'.chao/state.json').read_bytes(),data)
 
+    def test_sync_plan_declares_missing_directory_scope(self):
+        (self.root/'04-项目').rmdir()
+        plan=self.call('sync');self.assertEqual(plan['missing_directories'],['04-项目'])
+        self.assertFalse((self.root/'04-项目').exists())
+
     def test_non_object_and_nested_corruption_stop_without_overwrite(self):
         original=(self.root/'.chao/state.json').read_bytes()
         for bad in [[],dict(kb.empty_state(),rules={'r-123456789abc':{}}),dict(kb.empty_state(),profile={'身份':{'value':'外部经历','quote':'资料说的','source':'external'}})]:
@@ -319,6 +324,26 @@ class SafetyAndLifecycleTests(WorkspaceCase):
 
 
 class InstallAndHistoricalUpgradeTests(WorkspaceCase):
+    def test_user_config_bytes_are_preserved_without_whitespace_normalization(self):
+        agents='原有规则保留两个空格  '
+        ignore=' lead-pattern\n! keep-pattern\n  '
+        self.put('AGENTS.md',agents);self.put('.gitignore',ignore)
+        self.init()
+        self.assertTrue((self.root/'AGENTS.md').read_bytes().startswith(agents.encode()))
+        self.assertTrue((self.root/'.gitignore').read_bytes().startswith(ignore.encode()))
+        before=(self.root/'.gitignore').read_bytes();self.init()
+        self.assertEqual((self.root/'.gitignore').read_bytes(),before)
+
+    def test_package_member_order_and_text_bytes_are_portable(self):
+        manifest=installer.SOURCE/'manifest.json'
+        self.assertNotIn(b'\r',manifest.read_bytes())
+        self.assertNotIn(b'\r',(REPO/'dist/SHA256SUMS').read_bytes())
+        version=json.loads(manifest.read_text())['version']
+        with zipfile.ZipFile(REPO/('dist/chao-knowledge-v'+version+'.zip')) as z:
+            self.assertEqual(z.namelist()[:2],['chao-knowledge/LICENSE','chao-knowledge/SKILL.md'])
+            self.assertTrue(all(info.create_system==3 for info in z.infolist()))
+            self.assertEqual(z.read('chao-knowledge/manifest.json'),manifest.read_bytes())
+
     def test_source_manifest_symlink_is_rejected(self):
         source=self.base/'package'; import shutil;shutil.copytree(installer.SOURCE,source)
         (source/'manifest.json').unlink(); self.symlink(installer.SOURCE/'manifest.json',source/'manifest.json')
