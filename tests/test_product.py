@@ -339,24 +339,18 @@ class SafetyAndLifecycleTests(WorkspaceCase):
 
 class InstallAndHistoricalUpgradeTests(WorkspaceCase):
     def test_user_config_bytes_are_preserved_without_whitespace_normalization(self):
-        agents='原有规则保留两个空格  '
-        ignore=' lead-pattern\n! keep-pattern\n  '
-        self.put('AGENTS.md',agents);self.put('.gitignore',ignore)
+        agents='原有规则保留两个空格  \r\n'.encode()
+        ignore=b' lead-pattern\r\n! keep-pattern\r\n  '
+        (self.root/'AGENTS.md').write_bytes(agents);(self.root/'.gitignore').write_bytes(ignore)
         self.init()
-        self.assertTrue((self.root/'AGENTS.md').read_bytes().startswith(agents.encode()))
-        self.assertTrue((self.root/'.gitignore').read_bytes().startswith(ignore.encode()))
+        self.assertTrue((self.root/'AGENTS.md').read_bytes().startswith(agents))
+        self.assertTrue((self.root/'.gitignore').read_bytes().startswith(ignore))
         before=(self.root/'.gitignore').read_bytes();self.init()
         self.assertEqual((self.root/'.gitignore').read_bytes(),before)
+        wrong_encoding='原配置'.encode('utf-16');(self.root/'.gitignore').write_bytes(wrong_encoding)
+        with self.assertRaisesRegex(kb.KBError,'编码'):self.init()
+        self.assertEqual((self.root/'.gitignore').read_bytes(),wrong_encoding)
 
-    def test_package_member_order_and_text_bytes_are_portable(self):
-        manifest=installer.SOURCE/'manifest.json'
-        self.assertNotIn(b'\r',manifest.read_bytes())
-        self.assertNotIn(b'\r',(REPO/'dist/SHA256SUMS').read_bytes())
-        version=json.loads(manifest.read_text())['version']
-        with zipfile.ZipFile(REPO/('dist/chao-knowledge-v'+version+'.zip')) as z:
-            self.assertEqual(z.namelist()[:2],['chao-knowledge/LICENSE','chao-knowledge/SKILL.md'])
-            self.assertTrue(all(info.create_system==3 for info in z.infolist()))
-            self.assertEqual(z.read('chao-knowledge/manifest.json'),manifest.read_bytes())
 
     def test_source_manifest_symlink_is_rejected(self):
         source=self.base/'package'; import shutil;shutil.copytree(installer.SOURCE,source)

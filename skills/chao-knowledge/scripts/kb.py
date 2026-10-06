@@ -391,13 +391,18 @@ def ensure_layout(root):
     for p in paths: p.mkdir(parents=True, exist_ok=True)
 
 
+
+def read_config(path):
+    try: return path.read_bytes().decode("utf-8")
+    except UnicodeError: raise KBError("已有配置不是可安全读取的 UTF-8 文本；内容已保留，请先核对编码："+path.name)
+
 def ensure_private_ignores(root, existing=None):
     p = inside(root, ".gitignore")
     if existing is None:
         if p.exists():
             if not p.is_file() or p.stat().st_size > MAX_TEXT:
                 raise KBError("已有 .gitignore 不适合自动追加")
-            existing = p.read_text(encoding="utf-8")
+            existing = read_config(p)
         else:
             existing = ""
     lines = ["/.chao/", "/00-收件箱/", "/01-我的档案/", "/02-资料库/", "/03-内容中心/", "/04-项目/", "/05-经验与规则/", "/开始这里.md", "/本周重点.md", "/知识库地图.md"]
@@ -625,7 +630,7 @@ def _initialize(root):
         if p.exists():
             if not p.is_file() or p.stat().st_size > MAX_TEXT:
                 raise KBError("已有配置不适合自动追加：" + rel)
-            previous[rel] = p.read_text(encoding="utf-8")
+            previous[rel] = read_config(p)
     if BLOCK_START in previous.get("AGENTS.md", ""):
         raise KBError("已有知识库入口但状态丢失；请检查备份，不自动重建")
     ensure_layout(root)
