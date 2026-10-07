@@ -9,7 +9,7 @@ import stat
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills/chao-knowledge"
-VERSION = "0.3.2"
+VERSION = "0.3.3"
 
 
 def build():

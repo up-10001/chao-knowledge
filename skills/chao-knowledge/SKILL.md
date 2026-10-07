@@ -4,7 +4,7 @@ description: 个人 AI 知识库助手。用户说“让 AI 更懂我”“搭�
 description_zh: 用个人档案、资料、作品和经确认的规则持续协助任务，保留来源与修改历史。
 description_en: Use a personal profile, source-aware materials, versioned work and confirmed scoped rules across workspace conversations.
 display_name: Chao Knowledge · 个人 AI 知识库
-version: "0.3.2"
+version: "0.3.3"
 author: up-10001
 license: MIT
 compatibility: WorkBuddy 桌面本地工作区；脚本需要 Python 3.9+ 和相应文件权限，无第三方 Python 依赖。网页读取、文档提取、转写与内容生成由宿主提供。
@@ -12,7 +12,7 @@ metadata:
   repository: "https://github.com/up-10001/chao-knowledge"
   installation_guide: "https://github.com/up-10001/chao-knowledge/blob/main/AGENT_INSTALL.md"
   author: up-10001
-  version: "0.3.2"
+  version: "0.3.3"
 ---
 
 # Chao Knowledge · 个人 AI 知识库
@@ -112,7 +112,7 @@ context 返回有预算限制的档案、适用规则、资料摘录、相关作
 
 ## 健康检查与恢复
 
-`health` 默认只检查；`health --save` 只写健康 JSON 与可读报告，不修复目录、入口、资料或手工改动。按 P0/P1/P2 给普通用户解释与下一步。
+`health` 默认只检查、不写文件；`health --save` 保存健康 JSON 与可读报告，并在知识库地图存在且未手改时同步诊断摘要及投影哈希。档案/资料/规则等事实不变；不修复缺失地图、其他入口、目录或手工改动。按 P0/P1/P2 给普通用户解释与下一步。
 
 检测范围包含入口/目录、投影漂移、文件完整性、待提取/链接/部分正文、档案缺口、重点过期、规则过期/重叠、作品引用失效、重复资料、未登记文件、旧版残留、敏感文件风险和收件箱积压。结构异常不代表自动知道安全的修法。
 

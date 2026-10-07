@@ -4,7 +4,7 @@
 
 这是一个安装在 WorkBuddy 桌面端的开源 Skill。你只需正常对话，AI 帮你整理个人档案、归档资料、写口播或方案、保存修改，并在同一工作区的新对话中重新读取它们。长期要求由你确认，可以限定场景、修改或撤销。
 
-**v0.3.2 · MIT · 本地文件 · Python 3.9+ · 无第三方 Python 依赖**
+**v0.3.3 · MIT · 本地文件 · Python 3.9+ · 无第三方 Python 依赖**
 
 ## 最简单的安装方式
 
@@ -28,7 +28,7 @@ npx -y skills@latest add up-10001/chao-knowledge --skill chao-knowledge -y
 
 ### ZIP 安装
 
-从 [最新正式 Release](https://github.com/up-10001/chao-knowledge/releases/latest) 获取 `chao-knowledge-v0.3.2.zip` 与 SHA256SUMS，核对后在 **专家·技能·连接器 → 技能 → 添加技能 → 上传技能** 导入并确认启用。菜单以当前客户端为准。[详细安装说明](docs/INSTALL.md)
+从 [最新正式 Release](https://github.com/up-10001/chao-knowledge/releases/latest) 获取 `chao-knowledge-v0.3.3.zip` 与 SHA256SUMS，核对后在 **专家·技能·连接器 → 技能 → 添加技能 → 上传技能** 导入并确认启用。菜单以当前客户端为准。[详细安装说明](docs/INSTALL.md)
 
 ### 开发者安装
 

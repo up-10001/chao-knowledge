@@ -1,4 +1,4 @@
-# 安装、更新与回滚 · v0.3.2
+# 安装、更新与回滚 · v0.3.3
 
 ## Agent / WorkBuddy 一句话安装（首选）
 
@@ -14,7 +14,7 @@
 
 ## 手动 ZIP 安装
 
-从 [最新正式 Release](https://github.com/up-10001/chao-knowledge/releases/latest) 获取 `chao-knowledge-v0.3.2.zip` 和 SHA256SUMS；核对同版清单并审阅后，在 **专家·技能·连接器 → 技能 → 添加技能 → 上传技能** 导入，确认启用，再调用 chao-knowledge。普通用户可让 Agent 完成此 fallback。
+从 [最新正式 Release](https://github.com/up-10001/chao-knowledge/releases/latest) 获取 `chao-knowledge-v0.3.3.zip` 和 SHA256SUMS；核对同版清单并审阅后，在 **专家·技能·连接器 → 技能 → 添加技能 → 上传技能** 导入，确认启用，再调用 chao-knowledge。普通用户可让 Agent 完成此 fallback。
 
 不同客户端菜单/用户目录可能变化，以 [官方技能说明](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/Skills-Market)、[项目说明](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/Project) 和实际发现结果为准。包仍使用 `{skill-name}/SKILL.md`、references、scripts、assets 结构，ZIP 不包含个人知识库。SHA256 只检查一致性，不是数字签名或来源认证。
 

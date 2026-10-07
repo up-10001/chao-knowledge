@@ -102,7 +102,7 @@ kind 为 observation/hypothesis/experiment/validated。validated 需要至少两
 
 `PYTHON SCRIPT --root ROOT health --save`
 
-默认只报告。--save 只写 `.chao/latest-health.json` 和 `05-经验与规则/知识库健康报告.md`，不修任何业务文件。
+默认只报告，不写文件。--save 保存 `.chao/latest-health.json` 与 `05-经验与规则/知识库健康报告.md`；地图存在且未手改时同步最近检查摘要及投影哈希。事实记录不变；缺失或手改地图保留原样，不修复其他入口、资料或目录。
 
 `PYTHON SCRIPT --root ROOT sync`
 
