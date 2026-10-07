@@ -4,18 +4,24 @@ description: 个人 AI 知识库助手。用户说“让 AI 更懂我”“搭�
 description_zh: 用个人档案、资料、作品和经确认的规则持续协助任务，保留来源与修改历史。
 description_en: Use a personal profile, source-aware materials, versioned work and confirmed scoped rules across workspace conversations.
 display_name: Chao Knowledge · 个人 AI 知识库
-version: "0.3.1"
+version: "0.3.2"
 author: up-10001
 license: MIT
 compatibility: WorkBuddy 桌面本地工作区；脚本需要 Python 3.9+ 和相应文件权限，无第三方 Python 依赖。网页读取、文档提取、转写与内容生成由宿主提供。
 metadata:
+  repository: "https://github.com/up-10001/chao-knowledge"
+  installation_guide: "https://github.com/up-10001/chao-knowledge/blob/main/AGENT_INSTALL.md"
   author: up-10001
-  version: "0.3.1"
+  version: "0.3.2"
 ---
 
 # Chao Knowledge · 个人 AI 知识库
 
 用用户自己的资料完成任务，让档案、作品、明确要求和复盘在同一工作区积累。完成一件有用的事才是首次使用的成果。
+
+## 安装/更新请求
+
+用户给出本 Skill 名称与 GitHub 地址时，按 [安装入口](references/installation.md) 完成：先核验最新正式版本，优先标准 Skills CLI，环境不支持时使用正式 Release ZIP；direct GitHub 5xx 不代表不可安装。核实实际 scope/路径、宿主发现和一次真实调用，区分 FRESH_INSTALL / UPDATED / ALREADY_INSTALLED / INSTALL_FAILED。普通知识库任务不运行安装或自动升级。
 
 ## 启动
 

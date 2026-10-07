@@ -432,10 +432,10 @@ class InstallAndHistoricalUpgradeTests(WorkspaceCase):
         before=kb.load(self.root);custom=(self.root/'自定义文件.md').read_bytes()
         source=self.base/'future-skill';shutil.copytree(installer.SOURCE,source)
         for rel in ['SKILL.md','scripts/kb.py']:
-            p=source/rel;p.write_text(p.read_text(encoding='utf-8').replace(kb.VERSION,'0.3.2'),encoding='utf-8')
-        (source/'manifest.json').write_text(json.dumps({'version':'0.3.2','algorithm':'sha256','files':installer.inventory(source)}),encoding='utf-8')
+            p=source/rel;p.write_text(p.read_text(encoding='utf-8').replace(kb.VERSION,'0.3.3'),encoding='utf-8')
+        (source/'manifest.json').write_text(json.dumps({'version':'0.3.3','algorithm':'sha256','files':installer.inventory(source)}),encoding='utf-8')
         with mock.patch.object(installer,'SOURCE',source):result=installer.install(str(self.root),True,True)
-        self.assertEqual(result['version'],'0.3.2')
+        self.assertEqual(result['version'],'0.3.3')
         after=kb.load(self.root)
         for key in ['profile','materials','outputs','rules','feedback']:self.assertEqual(after[key],before[key])
         self.assertEqual((self.root/'自定义文件.md').read_bytes(),custom)

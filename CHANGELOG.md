@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.2 — 2026-10-07
+
+- README 首选名称 + GitHub 地址的一句话安装，增加简短 Agent 安装入口与包内参考。
+- 明确标准 Skills CLI → 正式 Release ZIP fallback、实际 WorkBuddy scope、复制方式与安装后版本/完整性/发现/调用核验。
+- 明确 FRESH_INSTALL / UPDATED / ALREADY_INSTALLED / INSTALL_FAILED；旧包备份保留，5xx 不等于失败，缓存不能冒充新安装。
+- 知识库核心行为不变，仅同步发行版本标识；新增真实 CLI 发行包集成验证。
+
 ## v0.3.1 — 2026-10-07
 
 - 修复 WorkBuddy 5.7.6 默认安全环境拦截目录锁释放的问题：业务、初始化与安装改用持久普通文件锁，POSIX fcntl / Windows msvcrt，结束只解锁并关闭。

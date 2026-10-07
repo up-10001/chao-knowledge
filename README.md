@@ -4,20 +4,39 @@
 
 这是一个安装在 WorkBuddy 桌面端的开源 Skill。你只需正常对话，AI 帮你整理个人档案、归档资料、写口播或方案、保存修改，并在同一工作区的新对话中重新读取它们。长期要求由你确认，可以限定场景、修改或撤销。
 
-**v0.3.1 · MIT · 本地文件 · Python 3.9+ · 无第三方 Python 依赖**
+**v0.3.2 · MIT · 本地文件 · Python 3.9+ · 无第三方 Python 依赖**
 
-## 安装与第一句话
+## 最简单的安装方式
 
-1. 从 [Release](https://github.com/up-10001/chao-knowledge/releases/latest) 下载 `chao-knowledge-v0.3.1.zip`。
-2. 在 WorkBuddy 的 **专家·技能·连接器 → 技能 → 添加技能 → 上传技能** 中导入 ZIP，并确认技能启用。菜单名称以当前客户端为准。
-3. 新建一个独立文件夹，例如 **我的 AI 知识库**，在 WorkBuddy 选择它作为本地工作区。
-4. 发送下面这句话：
+在 WorkBuddy 选择一个独立的本地工作区，然后直接发送：
 
-> 调用 chao-knowledge，带我完成第一次使用。我现在做……，主要给……看，今天想完成……。先帮我记录必要背景，再用一份我的资料完成这个任务。
+> 帮我安装 chao-knowledge 这个 skill，地址是https://github.com/up-10001/chao-knowledge，装好以后告诉我装在哪里，并确认你能调用它。
 
-无需自己输入脚本命令或维护机器状态。Skill 会检查运行条件；缺 Python 或文件权限时会说明原因。遇到无法发现技能、ZIP 导入或升级问题，见 [安装与问题处理](docs/INSTALL.md)。
+用户不需要下载 ZIP、打开终端或输入安装命令。WorkBuddy / Agent 应先用标准 Skills CLI；若网页直连出现 502、503 或 timeout，继续尝试正常安装渠道，必要时使用正式 Release ZIP。安装后告诉你实际路径、版本、是否被 WorkBuddy 识别和能否调用；旧副本不能冒充本次新安装。
 
-WorkBuddy 的 [官方技能说明](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/Skills-Market) 支持本地包导入；[官方项目说明](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/Project) 描述了项目级 `.codebuddy/skills` 和 `AGENTS.md` 兼容。客户端实测范围见 [验证记录](docs/VALIDATION.md)。
+**给安装 Agent：** 先读 [AGENT_INSTALL.md](AGENT_INSTALL.md)，核实最新正式 Release 和 WorkBuddy 的实际 scope，再执行：
+
+```bash
+npx -y skills@latest add up-10001/chao-knowledge --skill chao-knowledge -y
+```
+
+按当前客户端支持的目标补充 scope/agent 参数；不要把其他宿主的用户目录当作 WorkBuddy 目录。保留正常安全审计和权限确认；`-y` 仅是 CLI 自身选项，不授权跳过 WorkBuddy 安全机制。具体版本、实测范围和三轮结果见 [VALIDATION](docs/VALIDATION.md)。
+
+## 手动安装
+
+只给希望自行操作的用户使用；一般用户继续用上面那句话即可。
+
+### ZIP 安装
+
+从 [最新正式 Release](https://github.com/up-10001/chao-knowledge/releases/latest) 获取 `chao-knowledge-v0.3.2.zip` 与 SHA256SUMS，核对后在 **专家·技能·连接器 → 技能 → 添加技能 → 上传技能** 导入并确认启用。菜单以当前客户端为准。[详细安装说明](docs/INSTALL.md)
+
+### 开发者安装
+
+审阅固定版本源码后可用 `python3 tools/install.py --workspace "独立工作区路径" --init`，安装到该工作区的 `.codebuddy/skills/chao-knowledge`。完整包、私人知识库和安装源码分开放置，保留现有文件与自定义内容。
+
+装好后说“调用 chao-knowledge，带我完成第一次使用”，再告诉它现在做什么、主要给谁看、今天完成什么。知识库需要 Python 3.9+；缺运行时或权限时应解释原因，不擅自安装或放宽安全设置。
+
+WorkBuddy 的 [官方技能说明](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/Skills-Market) 和 [项目说明](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/Project) 描述本地包与项目级兼容；能力说明不能代替实际客户端验收。
 
 ## 装好以后长什么样
 

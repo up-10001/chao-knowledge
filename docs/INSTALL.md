@@ -1,35 +1,32 @@
-# 安装、更新与回滚 · v0.3.1
+# 安装、更新与回滚 · v0.3.2
 
-## WorkBuddy 桌面端
+## Agent / WorkBuddy 一句话安装（首选）
 
-从 [Release](https://github.com/up-10001/chao-knowledge/releases/latest) 下载版本 ZIP。在 **专家·技能·连接器 → 技能 → 添加技能 → 上传技能** 中导入，然后确认启用状态。选择独立的本地知识库文件夹，发送“调用 chao-knowledge，带我完成第一次使用”。
+在 WorkBuddy 选定本地工作区后发送：
 
-不同版本菜单会变化，以 [官方技能说明](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/Skills-Market) 和实际界面为准。本包保留 `{skill-name}/SKILL.md`、references、scripts 结构与中英文描述、版本等元数据；参见 [官方包结构](https://open.workbuddy.cn/docs/skill)。ZIP 不包含个人知识库。已完成的客户端验证和未验证项见 [VALIDATION](VALIDATION.md)，官方能力说明不等于本包已通过实测。
+> 帮我安装 chao-knowledge 这个 skill，地址是https://github.com/up-10001/chao-knowledge，装好以后告诉我装在哪里，并确认你能调用它。
 
-完整模式需要 Python 3.9+，Agent 应先检查宿主已有运行时。无运行时不擅自安装 Python，按包内 fallback 说明降级。
+不需要用户下载 ZIP、打开终端或解释 scope。安装 Agent 先读 [AGENT_INSTALL](../AGENT_INSTALL.md)：标准 Skills CLI → 环境不支持时正式 Release ZIP；502/503/timeout 不等于仓库不存在。安全审计与宿主权限确认保持正常，禁止缓存冒充安装。最终核对最新正式版本、实际路径、全包完整性、WorkBuddy 识别和真实调用。
 
-## 项目级安装（可交给 WorkBuddy 执行）
+标准命令为 `npx -y skills@latest add up-10001/chao-knowledge --skill chao-knowledge -y`。当前 CLI 支持的 agent/scope 必须核实。已确认支持 `.codebuddy/skills` 的 WorkBuddy 本地工作区可追加 `--agent codebuddy --copy`；这不意味着 CLI 的 CodeBuddy 用户级目录就是 WorkBuddy 用户级目录。仅有 CLI 成功还不算 WorkBuddy 成功。
 
-不使用 ZIP 导入时，可以直接发送：
+安装结果区分：FRESH_INSTALL 新安装；UPDATED 旧版安全更新；ALREADY_INSTALLED 已核实最新完整包；INSTALL_FAILED 正常渠道/最终核验失败。无法核实最新版时不能用本地副本宣布成功。旧包先备份改名保留，手改/新增内容停止覆盖，知识库不擦除。
 
-```text
-请安装 https://github.com/up-10001/chao-knowledge 的 v0.3.1。
-先获取该 tag 的源码并阅读 README、SKILL.md、安装脚本。
-检查当前已选择的本地工作区、Python 3.9+ 和必要文件权限。
-运行 tools/install.py --workspace 当前工作区绝对路径 --init。
-保留已有文件；冲突或手工改动时停止覆盖并说明原因。
-安装后调用 chao-knowledge，用我的背景和一份资料完成第一个任务。
-```
+## 手动 ZIP 安装
 
-安装器只把 Skill 放到 `.codebuddy/skills/chao-knowledge`，另建私人数据目录。不要把知识库创建在源码仓库、用户主目录或磁盘根目录。
+从 [最新正式 Release](https://github.com/up-10001/chao-knowledge/releases/latest) 获取 `chao-knowledge-v0.3.2.zip` 和 SHA256SUMS；核对同版清单并审阅后，在 **专家·技能·连接器 → 技能 → 添加技能 → 上传技能** 导入，确认启用，再调用 chao-knowledge。普通用户可让 Agent 完成此 fallback。
 
-开发者手动运行：
+不同客户端菜单/用户目录可能变化，以 [官方技能说明](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/Skills-Market)、[项目说明](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/Project) 和实际发现结果为准。包仍使用 `{skill-name}/SKILL.md`、references、scripts、assets 结构，ZIP 不包含个人知识库。SHA256 只检查一致性，不是数字签名或来源认证。
+
+## 开发者项目级安装
+
+审阅固定正式 tag 的源码和安装器后执行：
 
 `python3 tools/install.py --workspace "/独立路径/我的 AI 知识库" --init`
 
-Windows 使用可用的 `py -3` 或 `python` 替代 python3。包含空格的路径需引号。校验源码 manifest 与同版本 SHA256SUMS；它们检查一致性，不能替代对发布者的信任或提供数字签名。
+安装器目标为该工作区 `.codebuddy/skills/chao-knowledge`。Windows 可用 `py -3` 或 `python`。不要把知识库建在源码仓库、主目录或磁盘根目录。宿主发现仍要实测，读取 SKILL.md 不算自动发现。
 
-[官方项目说明](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/Project) 确认 `.codebuddy/skills` 和 `AGENTS.md` 兼容。不能因此推断所有客户端模式都会自动触发：选本地工作区、启用 Skill，必要时新建对话并明确调用。
+运行脚本需已有 Python 3.9+；缺运行时按包内 fallback 说明解释，不擅自安装系统软件或放宽安全设置。
 
 ## 旧知识库升级
 
