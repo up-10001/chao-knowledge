@@ -512,11 +512,18 @@ def upgrade_boot(root):
     if not path.is_file() or path.stat().st_size > MAX_TEXT:
         return False
     text = read_config(path)
-    if text.count(BLOCK_START) != 1 or text.count(BLOCK_END) != 1 or LEGACY_BOOT.strip() not in text:
+    if text.count(BLOCK_START) != 1 or text.count(BLOCK_END) != 1:
         return False
+    replacement = None
+    for newline in ("\n", "\r\n"):
+        old_block = LEGACY_BOOT.strip().replace("\n", newline)
+        if old_block in text:
+            replacement = text.replace(old_block, BOOT.strip().replace("\n", newline), 1)
+            break
+    if replacement is None: return False
     backup = STORE + "/backups/entry-" + uuid.uuid4().hex[:12] + "/AGENTS.md"
     atomic(inside(root, backup), text)
-    atomic(path, text.replace(LEGACY_BOOT.strip(), BOOT.strip(), 1))
+    atomic(path, replacement)
     return True
 
 def ensure_private_ignores(root, existing=None):

@@ -15,7 +15,7 @@
     "references/installation.md": "268c0c9e125832a436fac5b35716b505cf2685e671ccb9305e94789f0a0568c7",
     "references/quality.md": "b3bdbbc25f8277240f02540429ef528cecd658ffe78d098f3dd86e8cc93172b4",
     "scripts/collect.py": "206324594e6f1addc3f3679be5860d0da33835ce3f94823679abffd4667bf34c",
-    "scripts/kb.py": "1e51082e1ba279a288cfb229632c0c78c914b4c8936cd507a1d8cc09c058337f",
+    "scripts/kb.py": "cd8f80cefc6cdec330af686d8db45bc83d385b955575e7f0d7ea44b597e73a47",
     "scripts/tikhub.py": "9eedea51cac8c85fb18f51a5342b35b27ada87c28fa5721ff046a23d6f6be6aa"
   }
 }

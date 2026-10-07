@@ -32,6 +32,18 @@ class NoviceTests(WorkspaceCase):
         self.assertFalse(self.init()['entry_updated'])
         self.assertEqual(path.read_text(encoding='utf-8'), original)
 
+    def test_crlf_owned_entry_upgrade_preserves_other_bytes_and_backup(self):
+        self.init()
+        before = ('# 保留的用户规则\r\n  原有缩进\r\n' + kb.LEGACY_BOOT.replace('\n', '\r\n') + '\r\n用户尾注  \r\n').encode('utf-8')
+        path = self.root / 'AGENTS.md'
+        path.write_bytes(before)
+        self.assertTrue(self.init()['entry_updated'])
+        expected = before.replace(kb.LEGACY_BOOT.strip().replace('\n', '\r\n').encode('utf-8'),
+                                  kb.BOOT.strip().replace('\n', '\r\n').encode('utf-8'))
+        self.assertEqual(path.read_bytes(), expected)
+        backups = list((self.root / '.chao/backups').glob('entry-*/AGENTS.md'))
+        self.assertEqual(backups[0].read_bytes(), before)
+
     def test_published_v033_workspace_upgrades_without_changing_facts(self):
         old = self.base / 'released-skill'
         with zipfile.ZipFile(REPO / 'dist/chao-knowledge-v0.3.3.zip') as archive:
