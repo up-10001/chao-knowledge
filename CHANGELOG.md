@@ -5,7 +5,9 @@
 - README 首选名称 + GitHub 地址的一句话安装，增加简短 Agent 安装入口与包内参考。
 - 明确标准 Skills CLI → 正式 Release ZIP fallback、实际 WorkBuddy scope、复制方式与安装后版本/完整性/发现/调用核验。
 - 明确 FRESH_INSTALL / UPDATED / ALREADY_INSTALLED / INSTALL_FAILED；旧包备份保留，5xx 不等于失败，缓存不能冒充新安装。
-- 知识库核心行为不变，仅同步发行版本标识；新增真实 CLI 发行包集成验证。
+- 知识库地图改为普通用户导航：档案填写状态、目录用途、内容流转、最近资料/作品、项目及规则经验统计；沿用自动投影与手改保护。
+- health 默认仍只读；明确 health --save 时同步刷新未手改地图的诊断摘要，事实记录和 state 结构不变。
+- 数据模型、资料归档、规则、作品版本、反馈、锁和迁移行为保留；新增真实 CLI 发行包集成验证与导航回归。
 
 ## v0.3.1 — 2026-10-07
 

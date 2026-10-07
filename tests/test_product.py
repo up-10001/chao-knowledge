@@ -110,7 +110,11 @@ class ProjectionAndTransactionTests(WorkspaceCase):
         def capture(path,data): writes.append(path.relative_to(self.root).as_posix()); return original(path,data)
         with mock.patch.object(kb,'_atomic',side_effect=capture):
             self.call('profile','--field','身份','--value','测试身份','--quote','这是测试身份')
-        self.assertEqual(set(writes),{'.chao/pending-write.json','.chao/state.json','01-我的档案/我是谁.md'})
+        self.assertEqual(set(writes),{'.chao/pending-write.json','.chao/state.json','01-我的档案/我是谁.md','知识库地图.md'})
+        writes.clear()
+        with mock.patch.object(kb,'_atomic',side_effect=capture):
+            self.call('profile','--field','身份','--value','另一段身份','--quote','这是新的测试身份')
+        self.assertNotIn('知识库地图.md',writes)  # count/status unchanged; full profile text is not on the map
         self.assertFalse((self.root/'.chao/transactions').exists())
 
     def test_failed_commit_does_not_rollback_a_later_external_edit(self):
