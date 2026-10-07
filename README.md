@@ -4,11 +4,11 @@
 
 这是一个安装在 WorkBuddy 桌面端的开源 Skill。你只需正常对话，AI 帮你整理个人档案、归档资料、写口播或方案、保存修改，并在同一工作区的新对话中重新读取它们。长期要求由你确认，可以限定场景、修改或撤销。
 
-**v0.3.0 · MIT · 本地文件 · Python 3.9+ · 无第三方 Python 依赖**
+**v0.3.1 · MIT · 本地文件 · Python 3.9+ · 无第三方 Python 依赖**
 
 ## 安装与第一句话
 
-1. 从 [Release](https://github.com/up-10001/chao-knowledge/releases/latest) 下载 `chao-knowledge-v0.3.0.zip`。
+1. 从 [Release](https://github.com/up-10001/chao-knowledge/releases/latest) 下载 `chao-knowledge-v0.3.1.zip`。
 2. 在 WorkBuddy 的 **专家·技能·连接器 → 技能 → 添加技能 → 上传技能** 中导入 ZIP，并确认技能启用。菜单名称以当前客户端为准。
 3. 新建一个独立文件夹，例如 **我的 AI 知识库**，在 WorkBuddy 选择它作为本地工作区。
 4. 发送下面这句话：
@@ -68,6 +68,8 @@ WorkBuddy 的 [官方技能说明](https://www.codebuddy.cn/docs/workbuddy/From-
 ## 数据、升级与能力边界
 
 资料原件、档案、规则、作品版本和反馈保存在你选中的本地工作区。换对话时必须选择同一工作区并重新加载；不会改变模型权重，也不是跨设备自动同步。建议定期备份整个文件夹。
+
+v0.3.1 使用持久文件锁，正常结束无需删除锁对象；异常进程退出由系统释放。旧版目录锁先停止旧任务，再按安装说明保留迁移，不自动删除。
 
 更新 Skill 不覆盖个人知识库。未改动的旧 Skill 可以备份后更新；自定义过的 Skill 会停止覆盖。v0.1.x/v0.2.x 知识库可以原地升级，保留原件、规则、作品与旧路径，并先备份状态和入口。无需删库重建。[升级与回滚说明](docs/INSTALL.md)
 

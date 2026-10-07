@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import base64
 import contextlib
+import errno
 import datetime as dt
 import hashlib
 import json
@@ -16,14 +17,13 @@ import math
 import os
 from pathlib import Path, PurePosixPath
 import re
-import shutil
 import stat
 import sys
 import tempfile
 import time
 import uuid
 
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 SCHEMA = 2
 STORE = ".chao"
 DIRS = (
@@ -135,13 +135,13 @@ def _atomic(path, data):
             f.flush()
             os.fsync(f.fileno())
         os.replace(temp, path)
-    finally:
-        if os.path.exists(temp):
-            os.unlink(temp)
+    except BaseException:
+        # Failed staging is retained for inspection; no implicit deletion.
+        raise
 
 
 # One command stages every file before applying it. The journal is retained only
-# after interruption or failed rollback; it is never an automatic repair signal.
+# with before-images after interruption or failed rollback; idle records contain no data.
 _TRANSACTION = None
 
 
@@ -161,7 +161,7 @@ def transaction(root):
     if _TRANSACTION is not None:
         raise KBError("不支持嵌套写入")
     pending = inside(root, STORE + "/pending-write.json")
-    if pending.exists():
+    if pending_write(root):
         raise KBError("上次写入未完成；先运行 recover 查看恢复范围，不继续覆盖")
     _TRANSACTION = {"root": root, "writes": {}}
     try:
@@ -205,18 +205,43 @@ def transaction(root):
                 current=path.read_bytes() if path.is_file() else None
                 if current not in (old[path],writes[path]): raise KBError("回滚目标后来又被修改；保留恢复记录")
                 if old[path] is None:
-                    if path.exists(): path.unlink()
+                    if path.exists(): preserve_uncommitted(root, path)
                 else: _atomic(path, old[path])
         except BaseException:
             raise KBError("写入中断且回滚未完成；保留恢复记录，请运行 recover，勿删除原资料")
-        pending.unlink()
+        finish_journal(root)
         raise
-    pending.unlink()
+    finish_journal(root)
 
+
+
+def pending_write(root):
+    p = inside(root, STORE + "/pending-write.json")
+    if not p.exists(): return False
+    if not p.is_file() or p.stat().st_size > 2 * MAX_BYTES:
+        raise KBError("恢复记录不是安全的普通文件或过大；停止写入")
+    obj = json.loads(p.read_text(encoding="utf-8"), object_pairs_hook=strict_pairs, parse_constant=invalid_constant)
+    if not isinstance(obj, dict): raise KBError("恢复记录格式损坏；停止写入")
+    if obj.get("status") == "idle":
+        if obj.get("files") != []: raise KBError("空闲恢复记录包含未处理内容；停止写入")
+        return False
+    return True  # v0.3.0 journals without status remain pending.
+
+
+def finish_journal(root):
+    _atomic(inside(root, STORE + "/pending-write.json"), '{"format":1,"status":"idle","files":[]}\n')
+
+
+def preserve_uncommitted(root, path):
+    # Rollback moves only files whose identity/hash was already checked.
+    target = inside(root, STORE + "/recovery-retained/" + uid("file") + "/" + path.name)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    path.rename(target)
+    return target
 
 def recover(root, apply=False, quote=None):
     pending = inside(root, STORE + "/pending-write.json")
-    if not pending.is_file():
+    if not pending_write(root):
         return {"status": "nothing_to_recover", "files": []}
     if pending.stat().st_size>2*MAX_BYTES: raise KBError("恢复记录过大；请保留现场")
     obj = json.loads(pending.read_text(encoding="utf-8"))
@@ -254,9 +279,9 @@ def recover(root, apply=False, quote=None):
             if backups[row["path"]] is not None:
                 _atomic(path,backups[row["path"]])
             elif path.exists():
-                path.unlink()
-        pending.unlink()
-        if journal: shutil.rmtree(journal)
+                preserve_uncommitted(root, path)
+        finish_journal(root)
+        if journal: result["retained_legacy_journal"] = journal.relative_to(root).as_posix()
         result["status"] = "recovered"
     return result
 
@@ -344,25 +369,106 @@ def load(root):
     return obj
 
 
+LEGACY_LOCKS = (".chao/LOCK", ".chao-init-lock", ".chao-install-lock")
+RETIRED_LOCK = b"chao-v0.3-directory-lock-retired\n"
+
+
+def check_legacy_locks(root):
+    for rel in LEGACY_LOCKS:
+        p = inside(root, rel)
+        if p.is_dir():
+            raise KBError("检测到 v0.3.0 目录锁；不会自动删除。先停止旧任务，再运行 migrate-locks 查看保留迁移计划：" + rel)
+        if rel != ".chao/LOCK" and p.exists() and p.read_bytes() != RETIRED_LOCK:
+            raise KBError("旧锁路径包含未知文件，未覆盖：" + rel)
+
+
 @contextlib.contextmanager
-def lock(root, wait_seconds=0):
-    store = inside(root, STORE)
-    if not store.is_dir():
-        raise KBError("尚未初始化")
-    p = inside(root, STORE + "/LOCK")
-    deadline=time.monotonic()+wait_seconds
-    while True:
-        try:
-            p.mkdir()
-            break
-        except FileExistsError:
-            if time.monotonic()>=deadline:
-                raise KBError("工作区正在处理另一个任务，或上次异常退出留下 LOCK；稍后重试，勿强制并发写入")
-            time.sleep(0.05)
+def file_lock(root, relative, wait_seconds=0):
+    path = inside(root, relative)
+    if path.exists() and not path.is_file():
+        raise KBError("锁路径不是普通文件；保留现场，不删除：" + relative)
+    flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(str(path), flags, 0o600)
+    acquired = False
     try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+            raise KBError("锁文件不是安全的独立普通文件")
+        checked = inside(root, relative).stat()
+        if (checked.st_dev, checked.st_ino) != (info.st_dev, info.st_ino):
+            raise KBError("锁路径发生变化；停止操作")
+        deadline = time.monotonic() + wait_seconds
+        while True:
+            try:
+                if os.name == "nt":
+                    import msvcrt
+                    os.lseek(fd, 0, os.SEEK_SET)
+                    msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                acquired = True
+                break
+            except OSError as exc:
+                if exc.errno not in (errno.EACCES, errno.EAGAIN, errno.EDEADLK):
+                    raise
+                if time.monotonic() >= deadline:
+                    raise KBError("工作区正在处理另一个任务；锁等待超时，请稍后重试")
+                time.sleep(0.05)
+        # Windows byte-range locks may cover EOF. Initialise only after locking.
+        if os.fstat(fd).st_size == 0:
+            os.write(fd, b"\0")
+            os.fsync(fd)
         yield
     finally:
-        p.rmdir()
+        try:
+            if acquired:
+                if os.name == "nt":
+                    import msvcrt
+                    os.lseek(fd, 0, os.SEEK_SET)
+                    msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
+        # The object is persistent. Kernel unlock/close also handles process exit.
+
+
+@contextlib.contextmanager
+def lock(root, wait_seconds=0):
+    if not inside(root, STORE).is_dir(): raise KBError("尚未初始化")
+    check_legacy_locks(root)
+    with file_lock(root, STORE + "/LOCK", wait_seconds): yield
+
+
+def migrate_locks(root, apply=False, quote=None):
+    root.mkdir(parents=True, exist_ok=True)
+    with file_lock(root, ".chao-init.lock", 2):
+        legacy = [rel for rel in LEGACY_LOCKS if inside(root, rel).is_dir()]
+        for rel in legacy:
+            if any(inside(root, rel).iterdir()):
+                raise KBError("旧目录锁非空，停止自动迁移：" + rel)
+        result = {"status":"plan", "legacy_directories":legacy,
+                  "action":"确认所有 v0.3.0 任务已结束后，将空锁目录保留改名，原路径留下普通文件，阻止旧版误写；不删除任何目录"}
+        if apply:
+            check_text(quote, "确认所有旧版任务已经结束", 1000)
+            archive = ".chao-legacy-locks/" + uid("migration")
+            moved = []
+            try:
+                for rel in legacy:
+                    target = inside(root, archive + "/" + rel.replace("/", "_"))
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    inside(root, rel).rename(target)
+                    moved.append((rel, target))
+                    _atomic(inside(root, rel), RETIRED_LOCK)
+            except BaseException:
+                # Never overwrite a later file/lock. Preserve the moved objects.
+                raise KBError("迁移未完成；旧目录仍保留在迁移备份中，请核对现场，不强制覆盖")
+            result.update(status="migrated", preserved=[str(p.relative_to(root).as_posix()) for _,p in moved])
+            if legacy:
+                _atomic(inside(root, ".chao-lock-migration.json"), json.dumps({"at":now(), "quote":quote, "preserved":result["preserved"]},ensure_ascii=False))
+        return result
 
 
 def save_state(root, state):
@@ -405,7 +511,7 @@ def ensure_private_ignores(root, existing=None):
             existing = read_config(p)
         else:
             existing = ""
-    lines = ["/.chao/", "/00-收件箱/", "/01-我的档案/", "/02-资料库/", "/03-内容中心/", "/04-项目/", "/05-经验与规则/", "/开始这里.md", "/本周重点.md", "/知识库地图.md"]
+    lines = ["/.chao/", "/.chao-init.lock", "/.chao-install.lock", "/.chao-legacy-locks/", "/.chao-lock-migration.json", "/00-收件箱/", "/01-我的档案/", "/02-资料库/", "/03-内容中心/", "/04-项目/", "/05-经验与规则/", "/开始这里.md", "/本周重点.md", "/知识库地图.md"]
     missing = [line for line in lines if line not in existing.splitlines()]
     if missing:
         text=existing+("\n" if existing and not existing.endswith("\n") else "")
@@ -647,12 +753,11 @@ def _initialize(root):
 
 
 def initialize(root):
+    if (root / "skills/chao-knowledge/SKILL.md").exists():
+        raise KBError("这是开源代码目录；请另选私人知识库目录")
     root.mkdir(parents=True, exist_ok=True)
-    p = inside(root, ".chao-init-lock")
-    try: p.mkdir()
-    except FileExistsError: raise KBError("另一个任务正在初始化；请稍后重试，不强制解锁")
-    try: return _initialize(root)
-    finally: p.rmdir()
+    check_legacy_locks(root)
+    with file_lock(root, ".chao-init.lock", 2): return _initialize(root)
 
 
 def state_fingerprint(state):
@@ -933,7 +1038,7 @@ def context(root, state, args):
     conflicts = [{"key":r["key"],"ids":[r["id"],other["id"]]} for r in rules for other in rules
                  if r["id"]<other["id"] and r["key"]==other["key"] and r["text"]!=other["text"]]
     warnings = ["可读文件有手工改动；仍按机器状态加载，请先核对 sync 计划：" + x for x in view_drift(root,state)]
-    if inside(root,STORE + "/pending-write.json").exists(): warnings.append("上次写入中断，先核对 recover 计划；当前上下文可能不完整")
+    if pending_write(root): warnings.append("上次写入中断，先核对 recover 计划；当前上下文可能不完整")
     return {"workspace": str(root), "scope": scope, "profile": profile, "warnings": warnings, "rule_conflicts": conflicts,
             "outputs": [{k:r.get(k) for k in ("id","title","path","status","stage","parent","publication")} for r in relevant_outputs[:args.limit]],
             "outputs_omitted": max(0,len(relevant_outputs)-args.limit),
@@ -1240,7 +1345,7 @@ def health(root, state, save_report=False):
         p=safe(rel)
         if p is not None and p.exists(): add("P2","legacy_layout",path=rel,evidence="旧版目录保留原路径；登记资料仍可检索，不自动搬移")
     pending=safe(STORE+"/pending-write.json")
-    if pending is not None and pending.exists(): add("P0","interrupted_write",path=STORE+"/pending-write.json",evidence="写入中断；先用 recover 查看恢复范围，不继续写入")
+    if pending is not None and pending_write(root): add("P0","interrupted_write",path=STORE+"/pending-write.json",evidence="写入中断；先用 recover 查看恢复范围，不继续写入")
     known=set(view_documents(state))|{"05-经验与规则/知识库健康报告.md"}
     hashes={}
     for r in state["materials"].values():
@@ -1351,6 +1456,7 @@ def health(root, state, save_report=False):
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", required=True, help="用户选定的知识库目录")
+    parser.add_argument("--lock-timeout", type=float, default=2, help="持久文件锁的等待秒数（0 到 60）")
     subs = parser.add_subparsers(dest="cmd", required=True)
     subs.add_parser("init")
     p = subs.add_parser("profile")
@@ -1406,7 +1512,7 @@ def build_parser():
     p.add_argument("--scope",action="append",default=[]); p.add_argument("--feedback",action="append",default=[]); p.add_argument("--quote")
     p = subs.add_parser("experience-revoke")
     p.add_argument("--id",required=True); p.add_argument("--quote",required=True)
-    for name in ("sync","recover","rollback-migration"):
+    for name in ("sync","recover","rollback-migration","migrate-locks"):
         p = subs.add_parser(name)
         p.add_argument("--apply",action="store_true"); p.add_argument("--quote")
     p = subs.add_parser("profile-forget")
@@ -1423,9 +1529,11 @@ def execute(args):
     root = root_path(args.root)
     if hasattr(args, "limit") and not 1 <= args.limit <= 10:
         raise KBError("limit 必须为 1 到 10")
+    if not math.isfinite(args.lock_timeout) or not 0 <= args.lock_timeout <= 60: raise KBError("锁等待时间必须为 0 到 60 秒")
+    if args.cmd == "migrate-locks": return migrate_locks(root,args.apply,args.quote)
     if args.cmd == "init":
         return initialize(root)
-    with lock(root,wait_seconds=2 if args.cmd in {"context","search","rules","health"} else 0):
+    with lock(root, wait_seconds=args.lock_timeout):
         if args.cmd=="recover": return recover(root,args.apply,args.quote)
         state = load(root)
         if args.cmd=="rollback-migration":

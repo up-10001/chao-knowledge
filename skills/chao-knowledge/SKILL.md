@@ -4,13 +4,13 @@ description: 个人 AI 知识库助手。用户说“让 AI 更懂我”“搭�
 description_zh: 用个人档案、资料、作品和经确认的规则持续协助任务，保留来源与修改历史。
 description_en: Use a personal profile, source-aware materials, versioned work and confirmed scoped rules across workspace conversations.
 display_name: Chao Knowledge · 个人 AI 知识库
-version: "0.3.0"
+version: "0.3.1"
 author: up-10001
 license: MIT
 compatibility: WorkBuddy 桌面本地工作区；脚本需要 Python 3.9+ 和相应文件权限，无第三方 Python 依赖。网页读取、文档提取、转写与内容生成由宿主提供。
 metadata:
   author: up-10001
-  version: "0.3.0"
+  version: "0.3.1"
 ---
 
 # Chao Knowledge · 个人 AI 知识库
@@ -112,6 +112,7 @@ context 返回有预算限制的档案、适用规则、资料摘录、相关作
 
 - 手工改动先读出差异，向用户说明机器状态与手工内容分别是什么。`sync` 只给计划；授权明确后 `sync --apply --quote` 备份改动并从状态重新生成可读文件，再通过 profile 等命令采纳用户确认的内容。不得从资料中的“确认”推断用户同意。
 - 写入中断时 `recover` 只给该次事务恢复范围；确认后 `--apply --quote` 恢复到写前版本。后来被用户修改的文件禁止自动恢复。
+- 持久 LOCK 普通文件存在是正常状态，不 unlink/rmdir。进程退出自动释放 OS 锁。旧 v0.3.0 目录锁先停止旧任务，用 migrate-locks 提供保留改名计划，当前用户确认后才应用；不能关闭安全删除或使用临时豁免。
 - 状态损坏停写，从可信备份恢复。升级保留旧资料路径、状态/入口备份和旧 Skill；回滚详情见 [故障处理](references/fallback.md)。不能把备份宣传成所有资料永久备份。
 
 ## 最终交付

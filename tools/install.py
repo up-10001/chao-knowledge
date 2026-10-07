@@ -69,7 +69,7 @@ def copy_stage(source, parent, files):
         checked_manifest(stage)
         return stage
     except BaseException:
-        shutil.rmtree(stage)
+        # Failed staging is retained; never silently delete a directory.
         raise
 
 
@@ -80,9 +80,15 @@ def install(workspace, initialize=False, update=False, rollback=None, restore_mi
     root = kb.root_path(workspace)
     if root == REPO: raise ValueError("请另选私人工作区，不要把知识库建在源码仓库里")
     root.mkdir(parents=True, exist_ok=True)
-    guard = kb.inside(root, ".chao-install-lock")
-    try: guard.mkdir()
-    except FileExistsError: raise ValueError("另一个任务正在安装或更新；请稍后重试，不强制解锁")
+    try:
+        kb.check_legacy_locks(root)
+        with kb.file_lock(root, ".chao-install.lock", 2):
+            return install_locked(root,kb,expected,actual,initialize,update,rollback,restore_migration,quote)
+    except kb.KBError as exc:
+        raise ValueError(str(exc)) from exc
+
+
+def install_locked(root,kb,expected,actual,initialize,update,rollback,restore_migration,quote):
     try:
         target = kb.inside(root, ".codebuddy/skills/chao-knowledge")
         if target.exists() and not target.is_dir(): raise ValueError("技能目标路径不是文件夹；停止安装")
@@ -129,18 +135,18 @@ def install(workspace, initialize=False, update=False, rollback=None, restore_mi
                 if restore_state:
                     with kb.lock(root),kb.transaction(root): result["workspace"]=kb.rollback_migration(root,kb.load(root),True,quote)
             except BaseException:
-                if target.exists(): shutil.rmtree(target)
+                if target.exists(): target.rename(target.parent / (".chao-failed-install-"+uuid.uuid4().hex[:12]))
                 if backup: backup.rename(target)
                 raise
             if backup: result["backup"] = str(backup)
         finally:
-            if stage.exists(): shutil.rmtree(stage)
+            # Any failed stage remains for inspection, not automatic deletion.
+            pass
         result["next"] = "同一工作区新建对话调用 chao-knowledge，先完成一个真实任务"
         return result
     except kb.KBError as exc:
         raise ValueError(str(exc)) from exc
-    finally:
-        guard.rmdir()
+
 
 
 def main():

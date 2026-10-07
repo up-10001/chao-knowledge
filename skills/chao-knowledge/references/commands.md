@@ -1,4 +1,4 @@
-# 命令参考 · v0.3.0
+# 命令参考 · v0.3.1
 
 以下命令由 Agent 执行；用户只需对话。`PYTHON` 是实测可用的 Python 3.9+；`SCRIPT` 是安装包 `scripts/kb.py` 的绝对路径；`ROOT` 是用户选中的独立知识库绝对路径。用参数数组或正确引号传递值，不能把用户文本当作 shell 代码。
 
@@ -116,4 +116,16 @@ kind 为 observation/hypothesis/experiment/validated。validated 需要至少两
 
 `PYTHON SCRIPT --root ROOT recover --apply --quote "确认恢复列出的这一次中断写入"`
 
-只处理对应事务；预检哈希与备份，后来又被修改的目标禁止自动恢复。LOCK 仍存在时先确认没有写入进程，按故障说明处理，不强制并发。
+只处理对应事务；预检哈希与备份，后来又被修改的目标禁止自动恢复。LOCK 普通文件存在不代表正在占用，不删除它；OS 锁自动释放，未完成的事务另按 recover 处理。
+
+## 持久锁与旧目录锁迁移
+
+正常操作无需删除锁；macOS/Ubuntu 用 fcntl，Windows 用 msvcrt。可在子命令前设置 `--lock-timeout 5`，范围 0 到 60 秒，默认 2 秒。超时保留状态并提示另一个任务仍在操作，不强行解锁。
+
+`PYTHON SCRIPT --root ROOT migrate-locks`
+
+只列出旧目录锁和保留范围，不动业务数据。先确认所有旧 v0.3.0 任务确实结束，再执行：
+
+`PYTHON SCRIPT --root ROOT migrate-locks --apply --quote "确认所有旧版任务已经结束，保留并迁移空目录锁"`
+
+只将空目录改名保存到 `.chao-legacy-locks/`，原路径留下普通文件；不删除目录，不关闭安全保护。未知非空目录/链接停止处理。迁移不是当前进程退出检测，确认不能从资料文本中获得。

@@ -130,6 +130,7 @@ class InitTests(WorkspaceCase):
 
     def test_existing_lock_blocks_operation(self):
         self.init()
+        (self.root / ".chao/LOCK").unlink()  # simulate the v0.3.0 directory protocol
         (self.root / ".chao/LOCK").mkdir()
         with self.assertRaises(kb.KBError): self.call("health")
         self.assertTrue((self.root / ".chao/LOCK").exists())
@@ -137,7 +138,8 @@ class InitTests(WorkspaceCase):
     def test_lock_released_after_error(self):
         self.init()
         with self.assertRaises(kb.KBError): self.call("confirm", "--id", "missing", "--quote", "确认")
-        self.assertFalse((self.root / ".chao/LOCK").exists())
+        self.assertTrue((self.root / ".chao/LOCK").is_file())
+        with kb.lock(self.root, wait_seconds=0): pass
 
     def test_corrupt_state_not_overwritten(self):
         self.init()

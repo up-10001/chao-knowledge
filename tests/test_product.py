@@ -74,7 +74,8 @@ class ProjectionAndTransactionTests(WorkspaceCase):
             return original(path,data)
         with mock.patch.object(kb,'_atomic',side_effect=flaky),self.assertRaises(OSError):
             self.call('save','--title','草稿','--file','00-收件箱/draft.md')
-        self.assertEqual(files(self.root),before)
+        self.assertEqual({k:v for k,v in files(self.root).items() if not k.startswith(".chao/recovery-retained/")},before)
+        self.assertTrue(list((self.root/".chao/recovery-retained").rglob("*.md")))
 
     def test_interrupted_write_is_reported_and_recovered_only_explicitly(self):
         statepath=self.root/'.chao/state.json'; before=statepath.read_bytes()
@@ -90,7 +91,7 @@ class ProjectionAndTransactionTests(WorkspaceCase):
         self.assertEqual(statepath.read_bytes(),after)
         self.call('recover','--apply','--quote','确认恢复这一次未完成的写入')
         self.assertEqual(statepath.read_bytes(),before)
-        self.assertFalse((self.root/'.chao/pending-write.json').exists())
+        self.assertFalse(kb.pending_write(self.root))
 
     def test_recovery_refuses_later_user_edits(self):
         journal=self.root/'.chao/transactions/t-123456789abc'; journal.mkdir(parents=True)
@@ -99,6 +100,7 @@ class ProjectionAndTransactionTests(WorkspaceCase):
         with self.assertRaisesRegex(kb.KBError,'又被修改'): self.call('recover','--apply','--quote','恢复')
 
     def test_reinit_respects_existing_write_lock(self):
+        (self.root/'.chao/LOCK').unlink()  # legacy fixture, not a repair
         (self.root/'.chao/LOCK').mkdir(); before=(self.root/'.chao/state.json').read_bytes()
         with self.assertRaises(kb.KBError): self.init()
         self.assertEqual((self.root/'.chao/state.json').read_bytes(),before)
@@ -134,7 +136,8 @@ class ProjectionAndTransactionTests(WorkspaceCase):
         thread=threading.Thread(target=other_reader);thread.start();ready.wait(1)
         try: self.assertEqual(self.call('context','--task','知识库')['rules'],[])
         finally: thread.join()
-        self.assertFalse((self.root/'.chao/LOCK').exists())
+        self.assertTrue((self.root/'.chao/LOCK').is_file())
+        with kb.lock(self.root,wait_seconds=0):pass
 
     def test_duplicate_json_fields_and_nonfinite_numbers_are_corrupt_state(self):
         original=(self.root/'.chao/state.json').read_bytes()
@@ -374,7 +377,7 @@ class InstallAndHistoricalUpgradeTests(WorkspaceCase):
 
     def test_installer_concurrency_is_explicit(self):
         (self.root/'.chao-install-lock').mkdir()
-        with self.assertRaisesRegex(ValueError,'另一个任务'): installer.install(str(self.root))
+        with self.assertRaisesRegex(ValueError,'migrate-locks'): installer.install(str(self.root))
 
     def historical_repo(self,tag):
         repo=self.base/('repo-'+tag);repo.mkdir()
@@ -429,10 +432,10 @@ class InstallAndHistoricalUpgradeTests(WorkspaceCase):
         before=kb.load(self.root);custom=(self.root/'自定义文件.md').read_bytes()
         source=self.base/'future-skill';shutil.copytree(installer.SOURCE,source)
         for rel in ['SKILL.md','scripts/kb.py']:
-            p=source/rel;p.write_text(p.read_text(encoding='utf-8').replace('0.3.0','0.3.1'),encoding='utf-8')
-        (source/'manifest.json').write_text(json.dumps({'version':'0.3.1','algorithm':'sha256','files':installer.inventory(source)}),encoding='utf-8')
+            p=source/rel;p.write_text(p.read_text(encoding='utf-8').replace(kb.VERSION,'0.3.2'),encoding='utf-8')
+        (source/'manifest.json').write_text(json.dumps({'version':'0.3.2','algorithm':'sha256','files':installer.inventory(source)}),encoding='utf-8')
         with mock.patch.object(installer,'SOURCE',source):result=installer.install(str(self.root),True,True)
-        self.assertEqual(result['version'],'0.3.1')
+        self.assertEqual(result['version'],'0.3.2')
         after=kb.load(self.root)
         for key in ['profile','materials','outputs','rules','feedback']:self.assertEqual(after[key],before[key])
         self.assertEqual((self.root/'自定义文件.md').read_bytes(),custom)
@@ -456,7 +459,7 @@ class InstallAndHistoricalUpgradeTests(WorkspaceCase):
         install_old(middle,True)
         state=json.loads((self.root/'.chao/state.json').read_text(encoding='utf-8'));self.assertEqual(state['version'],'0.2.1')
         installer.install(str(self.root),True,True)
-        state=kb.load(self.root);self.assertEqual(state['version'],'0.3.0')
+        state=kb.load(self.root);self.assertEqual(state['version'],kb.VERSION)
         for group in ['materials','rules','outputs']:self.assertEqual(state[group],original[group])
         for path,data in before.items():self.assertEqual((self.root/path).read_bytes(),data)
         self.assertEqual(self.call('context','--task','方案','--scope','task=方案')['rules'][0]['id'],rule['id'])

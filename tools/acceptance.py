@@ -77,7 +77,7 @@ def journey(base,name,legacy=False,existing=False):
 
 
 def run(base):
-    return {'evidence':'synthetic script journeys','version':'0.3.0','journeys':[journey(base,'A-new-user'),journey(base,'B-existing-materials',existing=True),journey(base,'C-upgrade-v0.1.1',legacy=True)]}
+    return {'evidence':'synthetic script journeys','version':'0.3.1','journeys':[journey(base,'A-new-user'),journey(base,'B-existing-materials',existing=True),journey(base,'C-upgrade-v0.1.1',legacy=True)]}
 
 
 def main():
