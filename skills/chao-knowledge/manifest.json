@@ -1,17 +1,21 @@
 {
-  "version": "0.3.4",
+  "version": "0.4.0",
   "algorithm": "sha256",
   "files": {
     "LICENSE": "5517382eec92bda5a06b19a14640714a50b8fc38bc26e1cccc8f6e826b47102c",
-    "SKILL.md": "6ca313aeb5bb903d9b5f27ef9fe60cbe936667d5feda2ca26b9e140adbef6f26",
+    "SKILL.md": "4646f1dcf01b7d6043c5500cf0157ee427738cbc5b369350773cd3575fe12201",
     "assets/feedback-template.json": "79c562559a7b46cab10d156e8a9c382347218506edc10cd703361bcbee7b9854",
     "assets/sample-profile.json": "29095e433f69a509f26fd110511e577b2af9e0fd230c8fff96962f5104eacef2",
     "assets/sample-source.md": "387f27a1cb6fe2074b8608f8ea8608a71703ba1d26647c4b9c778ceca0cc52f3",
+    "assets/tikhub-endpoints.json": "bdbcf591f7c1c7210cb9d2a5db981274ef6c2b56eff8af697dd3fb389f5f1dbc",
+    "references/collection.md": "7d6b954346b4da8c20c8cab9e39ba9e76ae624ad90cfa559938af8ab6b4bda8e",
     "references/commands.md": "f8346bde2fb8f76a3634870ac939b488ceed4dd218e3366a56b835193b892e3d",
     "references/creator-workflow.md": "19d46d823cf565f5f15cdc7ba30f555aca39a5229045bafb13df0fa0ae3fcfd7",
-    "references/fallback.md": "252e37331b8efd324f247a42c3540c686c382d5c4b44292af7df0ffc117af722",
+    "references/fallback.md": "b1eebec8aca373175ccb349f3f40cab2407f1de5ae562810d117ba029c148bc7",
     "references/installation.md": "268c0c9e125832a436fac5b35716b505cf2685e671ccb9305e94789f0a0568c7",
     "references/quality.md": "b3bdbbc25f8277240f02540429ef528cecd658ffe78d098f3dd86e8cc93172b4",
-    "scripts/kb.py": "21fd2a6575fbc161643e2b23c418a29b55c8645a16a8104746962b87e54a142b"
+    "scripts/collect.py": "206324594e6f1addc3f3679be5860d0da33835ce3f94823679abffd4667bf34c",
+    "scripts/kb.py": "1e51082e1ba279a288cfb229632c0c78c914b4c8936cd507a1d8cc09c058337f",
+    "scripts/tikhub.py": "9eedea51cac8c85fb18f51a5342b35b27ada87c28fa5721ff046a23d6f6be6aa"
   }
 }

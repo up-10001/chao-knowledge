@@ -9,7 +9,7 @@ import stat
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills/chao-knowledge"
-VERSION = "0.3.4"
+VERSION = "0.4.0"
 
 
 def build():
@@ -17,6 +17,9 @@ def build():
     for directory,dirs,names in os.walk(SKILL,followlinks=False):
         for name in dirs+names:
             p=Path(directory)/name
+            if p.is_file() and (name.lower().startswith(".env") or name.lower() in {".tikhub_api_key", "tikhub.key", "config.json"}
+                                or p.suffix.lower() in {".key", ".pem", ".p12", ".pfx"}):
+                raise ValueError("技能发行包不能包含私有 Key 或本机配置：" + p.relative_to(SKILL).as_posix())
             if p.is_symlink() or getattr(p.lstat(),"st_file_attributes",0)&getattr(stat,"FILE_ATTRIBUTE_REPARSE_POINT",0x400) or p.is_file() and p.stat().st_nlink>1:
                 raise ValueError("技能包不能含链接或重解析点")
             if p.is_file() and p!=SKILL/"manifest.json" and not (p.suffix==".pyc" and "__pycache__" in p.parts): files.append(p)

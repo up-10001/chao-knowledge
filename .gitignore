@@ -6,6 +6,7 @@ __pycache__/
 .env*
 *.pem
 *.key
+.tikhub_api_key
 .DS_Store
 .chao/
 00-待整理/

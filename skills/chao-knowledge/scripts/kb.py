@@ -23,7 +23,7 @@ import tempfile
 import time
 import uuid
 
-VERSION = "0.3.4"
+VERSION = "0.4.0"
 SCHEMA = 2
 STORE = ".chao"
 DIRS = (

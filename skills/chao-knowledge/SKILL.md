@@ -1,18 +1,18 @@
 ---
 name: chao-knowledge
-description: 个人 AI 知识库助手。用户说“让 AI 更懂我”“搭知识库”“整理资料”“用我的资料写口播或方案”“记住要求”“撤销规则”“新对话继续”“保存作品”“发布后复盘”时使用。引导完成真实任务，保留外部来源，管理经用户确认、分场景生效的长期要求与可复用经验。
-description_zh: 用个人档案、资料、作品和经确认的规则持续协助任务，保留来源与修改历史。
-description_en: Use a personal profile, source-aware materials, versioned work and confirmed scoped rules across workspace conversations.
+description: 个人 AI 知识库助手。用于搭知识库、整理资料、用个人资料创作、保存要求与作品、跨对话继续和发布后复盘。用户要求采集公开社媒账号、作品、评论或字幕时，可接入用户自备 Key 的付费 TikHub API，先核对范围、费用与样本，再归档外部来源。
+description_zh: 用个人档案、资料、作品和经确认的规则持续协助任务；按授权接入用户自备 Key 的 TikHub 采集，保留来源与修改历史。
+description_en: Use a personal profile, source-aware materials, versioned work and confirmed scoped rules. Collect public social data with the user's paid TikHub key after scope, cost and sample review.
 display_name: Chao Knowledge · 个人 AI 知识库
-version: "0.3.4"
+version: "0.4.0"
 author: up-10001
 license: MIT
-compatibility: WorkBuddy 桌面本地工作区；脚本需要 Python 3.9+ 和相应文件权限，无第三方 Python 依赖。网页读取、文档提取、转写与内容生成由宿主提供。
+compatibility: WorkBuddy 桌面本地工作区；Python 3.9+，无第三方 Python 依赖。普通记录管理离线；显式 TikHub 采集需用户自备 Key、网络与费用授权。文档提取、云 ASR 和内容生成由宿主或单独服务提供。
 metadata:
   repository: "https://github.com/up-10001/chao-knowledge"
   installation_guide: "https://github.com/up-10001/chao-knowledge/blob/main/AGENT_INSTALL.md"
   author: up-10001
-  version: "0.3.4"
+  version: "0.4.0"
 ---
 
 # Chao Knowledge · 个人 AI 知识库
@@ -33,7 +33,15 @@ metadata:
 
 对用户用标题和可点击文件入口交付，不要求用户记住 ID、scope 参数或操作命令。脚本返回的 ID、哈希、JSON 和安装渠道细节用于内部核对；只有用户主动排障或要求技术细节时才展开。
 
-脚本不联网、不调用模型、不下载视频、不上传或自动发布。宿主云端模型可能接收它读取的内容，不能承诺绝不出本机。
+kb.py 不联网、不调用模型、不下载视频、不上传或自动发布。仅在用户明确采集时才使用 collect.py 向 TikHub 请求公开数据；普通任务不自动采集。宿主云端模型可能接收它读取的内容，不能承诺绝不出本机。
+
+## 公开数据采集
+
+用户要求“采集这个账号/这些链接”“抓作品或评论”“取得字幕并归档”时，先读 [采集流程](references/collection.md)。通过 scripts/collect.py 使用用户自己的 TikHub Key；配置保存在发行目录和知识库之外，不能放入作品或公开包。
+
+先确定对象、数量与预算，核对官方单价，生成有请求上限的计划；取回小样本核对对象和字段，再在已授权预算内继续。已有明确范围与预算授权时直接沿用，不逐页索取重复确认。结果不明、字段漂移、分页循环或费用超范围时停止，不自动重发可能扣费的请求。
+
+抖音/小红书的 9 个常用适配器提供标准字段、受控分页与入库；其他已收录平台使用官方 GET/POST 读取接口模式，先保存响应再核对字段，不冒充全部平台已适配或实测。视频简介不是逐字稿；无明确字幕时只保留链接与元数据。当前不内置视频下载、第三方 ASR 或自动发布。
 
 ## 数据与授权边界
 
