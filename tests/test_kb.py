@@ -258,9 +258,12 @@ class IngestTests(WorkspaceCase):
 
     def test_invalid_tag_does_not_leave_material_files(self):
         self.put()
+        directory = self.root / "02-资料库/素材"
+        before = {p.relative_to(directory): p.read_bytes() for p in directory.rglob('*') if p.is_file()}
         with self.assertRaises(kb.KBError):
             self.call("ingest", "--title", "bad tag", "--file", "00-收件箱/source.md", "--tag", "")
-        self.assertFalse(list((self.root / "02-资料库/素材").iterdir()))
+        self.assertEqual(before, {p.relative_to(directory): p.read_bytes() for p in directory.rglob('*') if p.is_file()})
+        self.assertFalse((directory / '_资料').exists())
 
     def test_text_size_limit(self):
         with self.assertRaises(kb.KBError): kb.decode(b"a" * (kb.MAX_TEXT + 1))

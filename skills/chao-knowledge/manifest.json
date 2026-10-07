@@ -1,9 +1,9 @@
 {
-  "version": "0.3.3",
+  "version": "0.3.4",
   "algorithm": "sha256",
   "files": {
     "LICENSE": "5517382eec92bda5a06b19a14640714a50b8fc38bc26e1cccc8f6e826b47102c",
-    "SKILL.md": "b91e6625752cf9f46af5521db39908314084accf36601fa4dcac4fbf6fba89d6",
+    "SKILL.md": "6ca313aeb5bb903d9b5f27ef9fe60cbe936667d5feda2ca26b9e140adbef6f26",
     "assets/feedback-template.json": "79c562559a7b46cab10d156e8a9c382347218506edc10cd703361bcbee7b9854",
     "assets/sample-profile.json": "29095e433f69a509f26fd110511e577b2af9e0fd230c8fff96962f5104eacef2",
     "assets/sample-source.md": "387f27a1cb6fe2074b8608f8ea8608a71703ba1d26647c4b9c778ceca0cc52f3",
@@ -11,7 +11,7 @@
     "references/creator-workflow.md": "19d46d823cf565f5f15cdc7ba30f555aca39a5229045bafb13df0fa0ae3fcfd7",
     "references/fallback.md": "252e37331b8efd324f247a42c3540c686c382d5c4b44292af7df0ffc117af722",
     "references/installation.md": "268c0c9e125832a436fac5b35716b505cf2685e671ccb9305e94789f0a0568c7",
-    "references/quality.md": "b463c3e924e4ef5671664a762085c2080400bc87f2d1c60f1c98002416c2a8c1",
-    "scripts/kb.py": "1ec9b9dde8ee84e7d62934d062cb4b04209856aef0176fc529286a7272fd85ae"
+    "references/quality.md": "b3bdbbc25f8277240f02540429ef528cecd658ffe78d098f3dd86e8cc93172b4",
+    "scripts/kb.py": "21fd2a6575fbc161643e2b23c418a29b55c8645a16a8104746962b87e54a142b"
   }
 }

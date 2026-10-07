@@ -4,7 +4,7 @@
 
 这是一个安装在 WorkBuddy 桌面端的开源 Skill。你只需正常对话，AI 帮你整理个人档案、归档资料、写口播或方案、保存修改，并在同一工作区的新对话中重新读取它们。长期要求由你确认，可以限定场景、修改或撤销。
 
-**v0.3.3 · MIT · 本地文件 · Python 3.9+ · 无第三方 Python 依赖**
+**v0.3.4 开发候选（尚未发布） · MIT · 本地文件 · Python 3.9+ · 无第三方 Python 依赖**
 
 ## 最简单的安装方式
 
@@ -12,7 +12,22 @@
 
 > 帮我安装 chao-knowledge 这个 skill，地址是https://github.com/up-10001/chao-knowledge，装好以后告诉我装在哪里，并确认你能调用它。
 
-用户不需要下载 ZIP、打开终端或输入安装命令。WorkBuddy / Agent 应先用标准 Skills CLI；若网页直连出现 502、503 或 timeout，继续尝试正常安装渠道，必要时使用正式 Release ZIP。安装后告诉你实际路径、版本、是否被 WorkBuddy 识别和能否调用；旧副本不能冒充本次新安装。
+安装后，WorkBuddy 应告诉你装在哪里、当前版本、是否已识别并能调用。普通用户只需对话，无需自己下载 ZIP、打开终端或理解内部编号。保留客户端正常的安装与安全确认。
+
+## 第一次使用：先完成一件小事
+
+在刚才选中的工作区说：
+
+> 调用 chao-knowledge，帮我搭一个个人 AI 知识库。我现在做 AI 内容，主要给刚开始接触 AI 的普通用户看，今天先把基础结构搭好。
+
+把“现在做什么、给谁看、今天做什么”换成自己的情况，不必先填完整档案。打开 `知识库地图.md` 看当前状态；准备写作时，再提供一份资料并说“结合我的档案，帮我写一份草稿”。
+
+资料和作品超过最近 8 条后，可从地图进入“全部资料”“全部作品”，各资料分类也有可点击标题的索引。新对话继续时要选同一个工作区；把文件拖进目录后，需要告诉 AI 登记。
+
+<details>
+<summary>安装 Agent 与开发者：渠道、路径和核验要求</summary>
+
+WorkBuddy / Agent 应先用标准 Skills CLI；若网页直连出现 502、503 或 timeout，继续尝试正常安装渠道，必要时使用正式 Release ZIP。核对实际路径、版本、宿主发现和调用；旧副本不能冒充本次新安装。
 
 **给安装 Agent：** 先读 [AGENT_INSTALL.md](AGENT_INSTALL.md)，核实最新正式 Release 和 WorkBuddy 的实际 scope，再执行：
 
@@ -22,13 +37,15 @@ npx -y skills@latest add up-10001/chao-knowledge --skill chao-knowledge -y
 
 按当前客户端支持的目标补充 scope/agent 参数；不要把其他宿主的用户目录当作 WorkBuddy 目录。保留正常安全审计和权限确认；`-y` 仅是 CLI 自身选项，不授权跳过 WorkBuddy 安全机制。具体版本、实测范围和三轮结果见 [VALIDATION](docs/VALIDATION.md)。
 
+</details>
+
 ## 手动安装
 
 只给希望自行操作的用户使用；一般用户继续用上面那句话即可。
 
 ### ZIP 安装
 
-从 [最新正式 Release](https://github.com/up-10001/chao-knowledge/releases/latest) 获取 `chao-knowledge-v0.3.3.zip` 与 SHA256SUMS，核对后在 **专家·技能·连接器 → 技能 → 添加技能 → 上传技能** 导入并确认启用。菜单以当前客户端为准。[详细安装说明](docs/INSTALL.md)
+从 [最新正式 Release](https://github.com/up-10001/chao-knowledge/releases/latest) 获取 与 Release 标签同版的 Skill ZIP 与 SHA256SUMS，核对后在 **专家·技能·连接器 → 技能 → 添加技能 → 上传技能** 导入并确认启用。菜单以当前客户端为准。[详细安装说明](docs/INSTALL.md)
 
 ### 开发者安装
 

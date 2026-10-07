@@ -23,7 +23,7 @@ import tempfile
 import time
 import uuid
 
-VERSION = "0.3.3"
+VERSION = "0.3.4"
 SCHEMA = 2
 STORE = ".chao"
 DIRS = (
@@ -50,7 +50,7 @@ SECRET_PATTERNS = [
 ]
 BLOCK_START = "<!-- chao-knowledge:begin -->"
 BLOCK_END = "<!-- chao-knowledge:end -->"
-BOOT = """<!-- chao-knowledge:begin -->
+LEGACY_BOOT = """<!-- chao-knowledge:begin -->
 ## Chao Knowledge 工作区
 仅在本工作区处理用户知识库任务。通过 Skill 的 context 命令重新加载档案、匹配本次范围且未过期的已确认规则和资料摘录；不要整库塞进上下文。
 已安装时先读取 `.codebuddy/skills/chao-knowledge/SKILL.md`，使用其中 `context` 命令获取适用信息。工具缺失时按 Skill 的手动降级说明处理，不宣称脚本已执行。
@@ -58,6 +58,9 @@ BOOT = """<!-- chao-knowledge:begin -->
 产出先存草稿，引用真实来源，列出待核对项，不把外部作者经历写成用户经历。不能读取的链接/音视频如实说明。涉及上传、发布、删除、付费或定时任务时，遵守当前用户已给出的具体授权与宿主权限。
 <!-- chao-knowledge:end -->
 """
+BOOT = LEGACY_BOOT.replace(
+    "已安装时先读取 `.codebuddy/skills/chao-knowledge/SKILL.md`，使用其中 `context` 命令获取适用信息。工具缺失时按 Skill 的手动降级说明处理，不宣称脚本已执行。",
+    "先从当前宿主的可用技能中调用 chao-knowledge，按实际加载的 SKILL.md 定位脚本并运行 context。用户级和项目级安装均可，不假定固定目录，不扫描其他工作区。技能不可用时说明发现或启用问题；工具缺失时按已读取的 Skill 降级说明处理，不宣称脚本已执行。")
 
 
 class KBError(Exception):
@@ -502,6 +505,20 @@ def read_config(path):
     try: return path.read_bytes().decode("utf-8")
     except UnicodeError: raise KBError("已有配置不是可安全读取的 UTF-8 文本；内容已保留，请先核对编码："+path.name)
 
+
+def upgrade_boot(root):
+    """Refresh only our exact old block; preserve all user-owned entry text."""
+    path = inside(root, "AGENTS.md")
+    if not path.is_file() or path.stat().st_size > MAX_TEXT:
+        return False
+    text = read_config(path)
+    if text.count(BLOCK_START) != 1 or text.count(BLOCK_END) != 1 or LEGACY_BOOT.strip() not in text:
+        return False
+    backup = STORE + "/backups/entry-" + uuid.uuid4().hex[:12] + "/AGENTS.md"
+    atomic(inside(root, backup), text)
+    atomic(path, text.replace(LEGACY_BOOT.strip(), BOOT.strip(), 1))
+    return True
+
 def ensure_private_ignores(root, existing=None):
     p = inside(root, ".gitignore")
     if existing is None:
@@ -593,13 +610,13 @@ def view_documents(state, health_snapshot=None):
     for row in sorted(current, key=lambda r: (r["key"], r["id"])):
         scope = readable_scope(row["scope"])
         lines += ["## " + row["key"], "- 内容：" + row["text"], "- 范围：" + scope,
-                  "- 有效期：" + (row["expires_on"] or "长期"), "- ID：`" + row["id"] + "`", ""]
+                  "- 有效期：" + (row["expires_on"] or "长期"), ""]
     if not current: lines += ["暂无当前有效的已确认规则。", ""]
     inactive = [r for r in state["rules"].values() if r not in current]
     if inactive:
         lines += ["## 未生效 / 已停止", ""]
         for r in inactive:
-            lines += ["- `" + r["id"] + "` · " + r["key"] + " · " + ("已过期" if expired(r.get("expires_on")) else STATUS_LABELS.get(r["status"],r["status"]))]
+            lines += ["- " + navigation_cell(r["key"]) + " · " + navigation_cell(readable_scope(r["scope"])) + " · " + ("已过期" if expired(r.get("expires_on")) else STATUS_LABELS.get(r["status"],r["status"]))]
     docs["05-经验与规则/我的长期要求.md"] = "\n".join(lines) + "\n"
     lines = [generated + "# 已验证经验与待验证观察", "", "观察、假设、实验与已验证经验分开；任何一条都不会自动变成长效规则。", ""]
     labels = {"observation":"一次观察", "hypothesis":"待验证假设", "experiment":"实验", "validated":"已验证经验", "revoked":"已撤销"}
@@ -621,6 +638,7 @@ def view_documents(state, health_snapshot=None):
             if r.get("project")==project: body += ["- 作品 [%s](../%s) · %s%s"%(md_label(r["title"]),r["path"],STATUS_LABELS[r["status"]]," · 历史版本" if r["id"] in parents else " · 当前分支末版")]
         docs[rel]="\n".join(body)+"\n"
     docs["知识库地图.md"] = navigation_document(state, current, projects, parents, health_snapshot)
+    docs.update(catalog_documents(state, parents))
     for path, text in list(docs.items()):
         docs[path] = text.replace("请通过对话更新，不要手工编辑本文件", "通过对话更新；手工改动会被检测并保留")
     return docs
@@ -633,6 +651,42 @@ def navigation_cell(value):
 def navigation_link(label, path):
     target = str(path).replace("%", "%25").replace(" ", "%20").replace("(", "%28").replace(")", "%29").replace("#", "%23")
     return "[" + navigation_cell(label) + "](" + target + ")"
+
+
+def newest_records(rows):
+    # JSON object insertion order survives save/load. IDs are random, not clocks.
+    return sorted(reversed(list(rows)), key=lambda row: row.get("created_at", ""), reverse=True)
+
+
+def catalog_documents(state, parents):
+    generated = "<!-- chao-knowledge:generated; 通过对话更新；手工改动会被检测并保留 -->\n"
+    docs = {}
+    material_rows = newest_records(state["materials"].values())
+    for category in (None,) + COLLECTIONS:
+        rel = "02-资料库/" + (category + "/" if category else "") + "资料索引.md"
+        rows = [r for r in material_rows if category is None or r.get("collection") == category]
+        lines = [generated + "# " + (category or "全部资料") + "索引", "",
+                 "这里列出全部已登记资料，包含历史版本。由知识库记录自动更新，点击标题查看正文或原件。", "",
+                 "| 资料 | 类型 | 来源归属 | 读取状态 | 项目 |", "|---|---|---|---|---|"]
+        for row in rows:
+            status = STATUS_LABELS[row["status"]]
+            if row.get("superseded_by"): status += " · 历史资料"
+            if expired(row.get("valid_until")): status += " · 已过期"
+            target = ("../" * len(PurePosixPath(rel).parent.parts)) + (row["text_path"] or row["original"])
+            lines.append("| %s | %s | %s | %s | %s |" % (navigation_link(row["title"], target),
+                         navigation_cell(row.get("collection", "旧版资料")), PROVENANCE_LABELS[row["provenance"]],
+                         status, navigation_cell(row.get("project") or "未关联项目")))
+        if not rows: lines += ["", "还没有登记资料。把文件交给 AI，说“归档这份资料，保留来源”。"]
+        docs[rel] = "\n".join(lines) + "\n"
+    lines = [generated + "# 全部作品索引", "", "标题对应真实保存的作品。历史稿保留；多个分支末版由你选择。", "",
+             "| 作品 | 阶段 | 版本 | 项目 |", "|---|---|---|---|"]
+    for row in newest_records(state["outputs"].values()):
+        lines.append("| %s | %s | %s | %s |" % (navigation_link(row["title"], "../" + row["path"]),
+                     navigation_cell(row.get("stage", "历史稿")), "历史版本" if row["id"] in parents else "当前分支末版",
+                     navigation_cell(row.get("project") or "未关联项目")))
+    if not state["outputs"]: lines += ["", "还没有保存作品。可以先告诉 AI 今天想完成什么。"]
+    docs["03-内容中心/作品索引.md"] = "\n".join(lines) + "\n"
+    return docs
 
 
 def navigation_document(state, current_rules, projects, parents, health_snapshot):
@@ -663,7 +717,7 @@ def navigation_document(state, current_rules, projects, parents, health_snapshot
         count = sum(bool(profile_value(state, field)) for field in fields)
         status = "已填写" if count else "待补充"
         lines.append("| %s | %s |" % (navigation_link(title, "01-我的档案/" + filename + ".md"), status))
-    recent = lambda rows: sorted(rows, key=lambda row: (row.get("created_at", ""), row["id"]), reverse=True)[:8]
+    recent = lambda rows: newest_records(rows)[:8]
     lines += ["", "## 最近资料", ""]
     if not state["materials"]:
         lines += ["还没有登记资料。把一份笔记或作品放进收件箱，再让 AI 导入。"]
@@ -676,7 +730,7 @@ def navigation_document(state, current_rules, projects, parents, health_snapshot
             path = row["text_path"] or row["original"]
             lines.append("| %s | %s | %s | %s | %s |" % (navigation_cell(row["title"]), navigation_cell(row.get("collection", "旧版资料")),
                          PROVENANCE_LABELS[row["provenance"]], status, navigation_link("打开正文" if row["text_path"] else "打开原件", path)))
-    lines += ["", "## 最近作品", ""]
+    lines += ["", navigation_link("查看全部资料（含历史版本）", "02-资料库/资料索引.md"), "", "## 最近作品", ""]
     if not state["outputs"]:
         lines += ["还没有保存作品。完成第一份草稿后，让 AI 保存并列出依据。"]
     else:
@@ -684,7 +738,7 @@ def navigation_document(state, current_rules, projects, parents, health_snapshot
         for row in recent(state["outputs"].values()):
             lines.append("| %s | %s | %s | %s | %s |" % (navigation_cell(row["title"]), navigation_cell(row.get("stage", "历史稿")),
                          "历史版本" if row["id"] in parents else "当前分支末版", navigation_cell(row.get("project") or "未关联项目"), navigation_link("打开作品", row["path"])))
-    lines += ["", "## 项目入口", ""]
+    lines += ["", navigation_link("查看全部作品与版本", "03-内容中心/作品索引.md"), "", "## 项目入口", ""]
     if not projects:
         lines += ["暂时没有项目，后续创建项目时会自动出现在这里。"]
     for project in projects:
@@ -806,6 +860,7 @@ def _initialize(root):
                 state.setdefault("experience", {})
                 state["migration"] = {"from": "1", "backup": backup, "at": now()}
             ensure_layout(root)
+            entry_updated = upgrade_boot(root)
             state["version"] = VERSION
             ensure_private_ignores(root)
             render_views(root, state)
@@ -816,7 +871,7 @@ def _initialize(root):
             before = load(root)
             if state != before: save_state(root, state)
         return {"status": "already_initialized", "workspace": str(root), "version": VERSION,
-                "migration": state.get("migration"), "note": "可读入口已检查；旧资料和旧目录保留原路径"}
+                "migration": state.get("migration"), "entry_updated": entry_updated, "note": "可读入口已检查；旧资料和旧目录保留原路径"}
     for rel in DIRS + (STORE, "开始这里.md", "本周重点.md", "知识库地图.md"):
         if inside(root, rel).exists():
             raise KBError("已有同名文件或目录，未改动：" + rel)
@@ -1042,7 +1097,7 @@ def search(root, state, query, limit, include_expired=False, material_id=None, c
     query = check_text(query, "检索词", 1000)
     ts = tokens(query)
     results, warnings, budget = [], [], 20 * 1024 * 1024
-    records = sorted(state["materials"].values(), key=lambda r: r["created_at"], reverse=True)
+    records = newest_records(state["materials"].values())
     if material_id: records = [get_record(state, "materials", material_id)]
     if collection: records = [r for r in records if r.get("collection") == collection]
     if project: records = [r for r in records if r.get("project") in (None,project)]
@@ -1092,7 +1147,7 @@ def search(root, state, query, limit, include_expired=False, material_id=None, c
                         "extraction": record.get("extraction")})
     if len(records) > 1000:
         warnings.append("仅检索最新 1000 条资料；请按项目拆分知识库")
-    results.sort(key=lambda x: (-x["score"], x["id"]))
+    results.sort(key=lambda x: -x["score"])
     return {"results": results[:limit], "warnings": sorted(set(warnings)), "method": "中文双字/英文关键词检索；不是语义检索或事实核验"}
 
 
@@ -1121,7 +1176,7 @@ def context(root, state, args):
                         and (not scope.get("project") or r.get("project") == scope["project"])
                         and (not r.get("scope") or all(scope.get(k) == v for k,v in r["scope"].items()))
                         and (tokens(args.task) & tokens(r["title"]) or scope.get("project"))]
-    relevant_outputs.sort(key=lambda r:r["created_at"], reverse=True)
+    relevant_outputs = newest_records(relevant_outputs)
     experiences = [r for r in state.get("experience", {}).values() if r["status"] != "revoked"
                    and all(scope.get(k)==v for k,v in r["scope"].items())]
     experiences.sort(key=lambda r:(r["status"] != "validated", r["created_at"]))
