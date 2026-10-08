@@ -8,7 +8,7 @@
 | 三个合成旅程：新用户、已有单份资料、v0.1.1 历史升级 | PASS；独立脚本进程，不是 GUI |
 | 正式 v0.3.3 测试库入口与索引升级 | PASS；档案等事实保留，旧入口精确备份更新，手改入口保留 |
 | 确定性 ZIP、manifest、SHA256 与源码匹配 | 本地打包及包完整性回归 PASS；不是正式发行 |
-| 候选 Windows / Ubuntu / macOS GitHub CI | de4b6eb 的三平台各 193 项 + 三套合成旅程 PASS；见 [CI](https://github.com/up-10001/chao-knowledge/actions/runs/37700662048)。文档修正版以其提交 checks 为准 |
+| 候选 Windows / Ubuntu / macOS GitHub CI | 文档修正版 6fe25fd 的三平台各 193 项 + 三套合成旅程 PASS；见 [CI](https://github.com/up-10001/chao-knowledge/actions/runs/37741395934)。后续纯验收记录提交仍以其 checks 为准 |
 | WorkBuddy 5.7.6 / macOS 用户级更新、加载与连续业务 | PASS，独立工作区，默认权限；见本轮客户端记录 |
 | WorkBuddy 三轮零缓存、direct 5xx fallback | NOT_RUN；本轮候选本地 ZIP 更新不能替代 GitHub 正式版本的三轮验收 |
 | 发布到 main / tag / Release | NOT_PUBLISHED；官方仍为 v0.3.3 |
@@ -39,7 +39,7 @@
 - 锁：整个连续业务未出现锁释放删除授权或残留目录锁。`.chao/LOCK` 为持久普通文件；后续命令正常获得锁。额外只读核验后的非阻塞 OS 加锁也成功，未手动清锁。`pending-write.json` 为 idle / files=[]，客户端 recover 返回 nothing_to_recover。
 - 投影：地图与完整资料/作品索引均实际打开；统计与 state 一致。health --save 后地图内显示严重 0 / 需核对 0 / 提示 1。提示为合成测试未填写本周重点，不是完整性错误。
 - 采集离线保护：routes 显示 9 个标准适配器；check-config 如实返回未配置 Key（退出码 2）。建立抖音短链、未知单价、预算 0、请求上限 1 的离线计划。run 返回“尚无已核对单价；先查价并重新生成费用计划”（退出码 2），状态中 attempts=0、unit_price_usd=null、无响应导出。未发起 quote 或实际采集请求。
-- 文档修正：客户端发现命令参考标题滞留 v0.3.1，现去除标题版本以避免误认；安装说明补充新对话复核及旧版遮蔽不能算成功。Python 脚本未变。本地重打包后 193 项回归通过，最终包安装完整性另行核对。
+- 文档修正：客户端发现命令参考标题滞留 v0.3.1，现去除标题版本以避免误认；安装说明补充新对话复核及旧版遮蔽不能算成功。Python 脚本未变。本地重打包后 193 项回归通过。WorkBuddy 随后逐字节核对三个脚本与已验收安装一致，确认仅两份文档变更；将旧候选完整移动保留后安装文档修正版，15/15 文件哈希通过，离线入口帮助通过，没有重新生成业务记录或发起采集请求。
 
 主业务验收包 SHA256：`b69e49c3be93e602b2a0d9bc668dfa66c108b81f89cb1fc42cd8cda8260ca864`。文档修正版 SHA256：`93deab3ca64b91082690e32b8e5bc10902156dce71d374c4137daf93d5655da7`。不能将前者的 UI 旅程冒称为后者重新执行了全套旅程；后者只修改两份文档及其打包元数据。
 
