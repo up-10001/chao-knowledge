@@ -1,19 +1,19 @@
-# 验证范围 · v0.4.0 开发候选（未发布）
+# 验证范围 · v0.4.0
 
 2026-10-08 前半轮按用户要求只做后台源码审计与离线回归；随后用户授权 WorkBuddy 验收，本轮客户端证据见下方。录屏知识库与素材保留。详见 [源码与小白体验审计](AUDIT-2026-10-08.md)。
 
-| 候选验收 | 状态与证据范围 |
+| 验收 | 状态与证据范围 |
 |---|---|
 | macOS / Python 3.9.6 本地完整回归 | PASS，193 项（含采集回归 30 项）；仅脚本证据 |
 | 三个合成旅程：新用户、已有单份资料、v0.1.1 历史升级 | PASS；独立脚本进程，不是 GUI |
 | 正式 v0.3.3 测试库入口与索引升级 | PASS；档案等事实保留，旧入口精确备份更新，手改入口保留 |
-| 确定性 ZIP、manifest、SHA256 与源码匹配 | 本地打包及包完整性回归 PASS；不是正式发行 |
+| 确定性 ZIP、manifest、SHA256 与源码匹配 | PASS；正式包保持已完成客户端核验的文档修正版字节 |
 | 候选 Windows / Ubuntu / macOS GitHub CI | 文档修正版 6fe25fd 的三平台各 193 项 + 三套合成旅程 PASS；见 [CI](https://github.com/up-10001/chao-knowledge/actions/runs/37741395934)。后续纯验收记录提交仍以其 checks 为准 |
 | WorkBuddy 5.7.6 / macOS 用户级更新、加载与连续业务 | PASS，独立工作区，默认权限；见本轮客户端记录 |
 | WorkBuddy 三轮零缓存、direct 5xx fallback | NOT_RUN；本轮候选本地 ZIP 更新不能替代 GitHub 正式版本的三轮验收 |
-| 发布到 main / tag / Release | NOT_PUBLISHED；官方仍为 v0.3.3 |
+| 版本交付 | v0.4.0；[正式 Release](https://github.com/up-10001/chao-knowledge/releases/tag/v0.4.0) |
 
-## TikHub 采集候选
+## TikHub 采集验证记录
 
 - 9 个抖音/小红书标准适配器：端点/参数与官方 SDK 固定 OpenAPI 快照核对；所有请求、分页、超时、错误及返回字段测试使用合成响应。
 - 通用读取接口目录：从官方快照提取 777 个 GET/POST 读取端点的参数元数据。目录覆盖不等于 777 个接口实测，也不等于全平台字段或分页均已自动映射。
@@ -32,7 +32,7 @@
 
 通过原生客户端输入指令执行，模型 Hy4 preview，默认权限；未修改登录、模型、权限设置、其他 Skills 或桌面录屏知识库。使用独立 `client-acceptance/v040-20261008/我的知识库`，所有新增档案、资料与作品为明确授权的合成验收数据，不是用户真实业务数据。
 
-- 包安装：WorkBuddy 安全审计 P2 后安装候选本地 ZIP，15 个内容文件 SHA256 匹配。此链路不是“只给 GitHub 地址安装正式最新版”，官方 Release 仍为 v0.3.3。
+- 包安装：WorkBuddy 安全审计 P2 后安装候选本地 ZIP，15 个内容文件 SHA256 匹配。此链路不是“只给 GitHub 地址安装正式最新版”，验收时官方 Release 为 v0.3.3。
 - 同名发现问题：项目 `.workbuddy/skills/chao-knowledge` 的 v0.4.0 落位后，当前对话及同工作区新对话的 Skill 工具均加载用户级 v0.3.3。没有把读项目文件或调用旧脚本算成新版加载；没有使用旧版初始化。本次不能据此确认该项目级路径优先级或普遍支持情况。
 - 安全更新：WorkBuddy 将用户级 v0.3.3 完整备份并移动保留到验收目录外层，旧包 11 个内容文件哈希通过。候选安装到 `~/.workbuddy/skills/chao-knowledge`；新建对话实际 Skill 工具加载 v0.4.0，15 个内容文件核验通过。
 - 连续业务：init → profile（3 次独立调用）→ ingest → context → remember → confirm → save → health --save → search 全部实际执行成功。最终档案 3 项、资料 1 份、作品 1 份、有效长期要求 1 条。外部作者归属保留，作品关联资料，规则范围只含用户授权的任务和受众。
@@ -44,6 +44,10 @@
 主业务验收包 SHA256：`b69e49c3be93e602b2a0d9bc668dfa66c108b81f89cb1fc42cd8cda8260ca864`。文档修正版 SHA256：`93deab3ca64b91082690e32b8e5bc10902156dce71d374c4137daf93d5655da7`。不能将前者的 UI 旅程冒称为后者重新执行了全套旅程；后者只修改两份文档及其打包元数据。
 
 剩余：用户尚未配置 Key 或授权真实服务请求的次数与费用上限，因此真实 TikHub 采集仍为 NOT_RUN；GitHub 正式最新版零状态三轮及 direct 5xx fallback 同样没有在本轮执行。候选提交与正式发布分别记录。
+
+## 2026-10-09 正式发布
+
+用户明确授权合并 main 并发布 v0.4.0。发布只调整仓库发行说明和记录，Skill、manifest、ZIP 与 SHA256SUMS 保持已验收字节。正式包 SHA256：`93deab3ca64b91082690e32b8e5bc10902156dce71d374c4137daf93d5655da7`。三平台检查以合并后 main 的 GitHub checks 为准，既有客户端记录不扩写为未执行的验收。
 
 ## v0.3.3 原客户端计划（保留历史记录）
 
