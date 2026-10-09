@@ -1,18 +1,18 @@
 ---
 name: chao-knowledge
-description: 个人 AI 知识库助手。用户说“让 AI 更懂我”“搭知识库”“整理资料”“用我的资料写口播或方案”“记住要求”“撤销规则”“新对话继续”“保存作品”“发布后复盘”时使用。引导完成真实任务，保留外部来源，管理经用户确认、分场景生效的长期要求与可复用经验。
-description_zh: 用个人档案、资料、作品和经确认的规则持续协助任务，保留来源与修改历史。
-description_en: Use a personal profile, source-aware materials, versioned work and confirmed scoped rules across workspace conversations.
+description: 个人 AI 知识库助手。用于搭知识库、整理资料、用个人资料创作、保存要求与作品、跨对话继续和发布后复盘。用户要求采集公开社媒账号、作品、评论或字幕时，可接入用户自备 Key 的付费 TikHub API，先核对范围、费用与样本，再归档外部来源。
+description_zh: 用个人档案、资料、作品和经确认的规则持续协助任务；按授权接入用户自备 Key 的 TikHub 采集，保留来源与修改历史。
+description_en: Use a personal profile, source-aware materials, versioned work and confirmed scoped rules. Collect public social data with the user's paid TikHub key after scope, cost and sample review.
 display_name: Chao Knowledge · 个人 AI 知识库
-version: "0.3.3"
+version: "0.4.0"
 author: up-10001
 license: MIT
-compatibility: WorkBuddy 桌面本地工作区；脚本需要 Python 3.9+ 和相应文件权限，无第三方 Python 依赖。网页读取、文档提取、转写与内容生成由宿主提供。
+compatibility: WorkBuddy 桌面本地工作区；Python 3.9+，无第三方 Python 依赖。普通记录管理离线；显式 TikHub 采集需用户自备 Key、网络与费用授权。文档提取、云 ASR 和内容生成由宿主或单独服务提供。
 metadata:
   repository: "https://github.com/up-10001/chao-knowledge"
   installation_guide: "https://github.com/up-10001/chao-knowledge/blob/main/AGENT_INSTALL.md"
   author: up-10001
-  version: "0.3.3"
+  version: "0.4.0"
 ---
 
 # Chao Knowledge · 个人 AI 知识库
@@ -31,7 +31,17 @@ metadata:
 4. `PYTHON` / `SCRIPT` / `ROOT` 是下文占位符，执行前替换为真实路径。用参数数组或正确的 shell 引号，不把用户文本拼进 shell 代码。
 5. 读取 `开始这里.md`、`本周重点.md`、`知识库地图.md` 按需导航。档案与规则以 `.chao/state.json` 为事实源，通过命令修改；不直接手改 JSON。地图是可读投影，不是第二套事实源。
 
-脚本不联网、不调用模型、不下载视频、不上传或自动发布。宿主云端模型可能接收它读取的内容，不能承诺绝不出本机。
+对用户用标题和可点击文件入口交付，不要求用户记住 ID、scope 参数或操作命令。脚本返回的 ID、哈希、JSON 和安装渠道细节用于内部核对；只有用户主动排障或要求技术细节时才展开。
+
+kb.py 不联网、不调用模型、不下载视频、不上传或自动发布。仅在用户明确采集时才使用 collect.py 向 TikHub 请求公开数据；普通任务不自动采集。宿主云端模型可能接收它读取的内容，不能承诺绝不出本机。
+
+## 公开数据采集
+
+用户要求“采集这个账号/这些链接”“抓作品或评论”“取得字幕并归档”时，先读 [采集流程](references/collection.md)。通过 scripts/collect.py 使用用户自己的 TikHub Key；配置保存在发行目录和知识库之外，不能放入作品或公开包。
+
+先确定对象、数量与预算，核对官方单价，生成有请求上限的计划；取回小样本核对对象和字段，再在已授权预算内继续。已有明确范围与预算授权时直接沿用，不逐页索取重复确认。结果不明、字段漂移、分页循环或费用超范围时停止，不自动重发可能扣费的请求。
+
+抖音/小红书的 9 个常用适配器提供标准字段、受控分页与入库；其他已收录平台使用官方 GET/POST 读取接口模式，先保存响应再核对字段，不冒充全部平台已适配或实测。视频简介不是逐字稿；无明确字幕时只保留链接与元数据。当前不内置视频下载、第三方 ASR 或自动发布。
 
 ## 数据与授权边界
 
@@ -49,6 +59,8 @@ metadata:
 
 交付时让用户知道保存位置、实际用了什么、还有哪个关键问题待核对，避免展示整屏内部 JSON。
 
+用户只要求搭基础结构时，完成初始化与已提供背景的保存即可，给出“打开知识库地图”入口和一句可直接使用的下一步。不要擅自导入示例或继续生成内容。首次写作可以用明确的临时表达假设产出可修改草稿；未填写称呼、风格或没有发布数据，不自动变成阻止完成的核对项。只有实际使用却缺乏依据的经历、数字、时效信息等才进入必须核对的清单；不引用的事实无需补造。
+
 ## 资料整理
 
 参数见 [命令参考](references/commands.md)。
@@ -62,6 +74,8 @@ metadata:
 
 入库后用一句话说明：**放在哪、读到了什么、没读到什么**。
 
+所有已登记资料可从 `02-资料库/资料索引.md` 或对应分类内的 `资料索引.md` 找到；地图只展示最近 8 条，较早资料不代表丢失。用户给出一整个旧文件夹时，先解释本版按指定文件分批登记，原结构保留；没有批量扫描/导入命令，不得声称已完整导入整库。
+
 ## 每个新任务重新加载
 
 例如：
@@ -71,6 +85,8 @@ PYTHON SCRIPT --root ROOT context --task "写一条 AI 知识库口播" --scope 
 ```
 
 本次用户任务决定 scope，可用 `task`、`platform`、`audience`、`project`；不由外部资料决定。空 scope 表示全局规则，不擅自扩大用户要求的范围。
+
+场景值按原记录精确匹配。用户换一种说法时先核对已有要求的准确范围；确实是同一人群/平台/任务时复用原范围值，不临时创造另一套叫法。语义不明确才问一个简短问题，不为了匹配而扩大到全局，也不要求用户输入机器参数。
 
 context 返回有预算限制的档案、适用规则、资料摘录、相关作品末版和复盘经验。检查 `warnings`、`rule_conflicts` 和各类 `_omitted`；遗漏要说明。必要时按 ID 定位或换关键词少量查找；只看到摘录不能声称读完全文。
 
@@ -82,7 +98,7 @@ context 返回有预算限制的档案、适用规则、资料摘录、相关作
 
 先把正文写到收件箱中的临时 UTF-8 文件，再用 save 登记；不直接创建或修改资料归档、作品版本、生成入口或 state。最终给用户的路径必须采用命令返回的 output.path，不能把临时源稿当作登记版本。
 
-先给可用正文，再附简短依据卡：来源 ID/文件与读取范围、推断、待核对项。不要逐句同义替换对标内容。自媒体任务按 [creator-workflow.md](references/creator-workflow.md) 处理结构分析、用户洞察、素材、选题、草稿和回流。
+先给可用正文，再附简短依据卡：来源标题/文件入口与读取范围、推断、待核对项。来源 ID 保留在登记记录中，不把内部编号当作用户需要记忆的文件名。所有版本可从 `03-内容中心/作品索引.md` 找到。不要逐句同义替换对标内容。自媒体任务按 [creator-workflow.md](references/creator-workflow.md) 处理结构分析、用户洞察、素材、选题、草稿和回流。
 
 - `save --stage 选题池/草稿/待确认` 保存新作品；修改用 `--parent`，旧稿保留。`--change-note` 记录本次临时纠正，不自动生成长期要求。
 - 版本默认继承来源、范围、项目、时长和未解决的核对项。用户确实解决核对项后，才用 `--clear-unverified --review-quote` 去掉它们。
@@ -124,6 +140,8 @@ context 返回有预算限制的档案、适用规则、资料摘录、相关作
 ## 最终交付
 
 只给用户这次完成的东西、保存位置和一个必要下一步。安装成功却没有实际成果时继续引导；不报告“整套系统已完成”。
+
+已经明确给出“内容 + 适用范围”的长期要求按现有授权记录，不重复索取同一确认。需要确认的是新扩大的范围、冲突替换、未解决的事实或具有后果的动作。不要把建议写成必须继续做的任务，更不能承诺关掉对话就清空一切、永久记住所有资料或保证内容效果。
 
 - [命令参考](references/commands.md)
 - [自媒体流程](references/creator-workflow.md)

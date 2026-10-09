@@ -26,6 +26,9 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Run three scripted user journeys
         run: python tools/acceptance.py
-      - name: Verify real remote standard Skills CLI package
+      - name: Verify current checkout with the real standard Skills CLI
         if: matrix.os == 'ubuntu-latest'
+        run: python tools/verify_cli.py --checkout
+      - name: Verify GitHub main through the real remote Skills CLI
+        if: matrix.os == 'ubuntu-latest' && github.ref == 'refs/heads/main'
         run: python tools/verify_cli.py
